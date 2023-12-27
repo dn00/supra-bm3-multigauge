@@ -1,0 +1,18 @@
+{
+  "name": "proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sockjs": "^0.3.24",
+    "sockjs-client": "^1.6.1",
+    "stompjs": "^2.3.3",
+    "ws": "^8.16.0"
+  }
+}
