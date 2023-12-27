@@ -1,0 +1,72 @@
+#:kivy 1.0.9
+
+#:import Animation kivy.animation.Animation
+#:import math math
+
+#V1.0.0
+
+# Set Global Font Types to save typing later
+#:set GaugeFont "data/fonts/Eurostile LT Std Medium.ttf"
+#:set ButtonFont "data/fonts/Eurostile LT Std Extended 2.ttf"
+
+AnchorLayout:
+    ScreenManager:
+        id: sm
+        Gauge1Screen:
+            name: 'gauge1'
+            FloatLayout:
+  
+                Label:
+                    text: str(app.OilTemp) + '°'
+                    text_size: 300, 100
+                    halign: 'right'
+                    valign: 'middle'
+                    font_size: 32
+                    pos: -170, 80
+                    font_name: GaugeFont
+                Image:
+                    source: "data/gauges/S2K_Coolant.png"
+                    opacity: 1             
+                    pos: -25, 260
+                    size_hint: None, None
+                    height: 70
+                    width: 170
+                Image:
+                    source: str(app.OilTemp_Image)
+                    opacity: 1
+                    pos: -25, 260
+                    size_hint: None, None
+                    height: 70
+                    width: 170
+
+        
+                Label:
+                    text: str(app.OilTemp) + '°'
+                    text_size: 300, 100
+                    halign: 'right'
+                    valign: 'middle'
+                    font_size: 32
+                    pos: -51, 80
+                    font_name: GaugeFont
+                Image:
+                    source: "data/gauges/S2K_Coolant.png"
+                    opacity: 1             
+                    pos: 94, 260
+                    size_hint: None, None
+                    height: 70
+                    width: 170
+                Image:
+                    source: str(app.OilTemp_Image)
+                    opacity: 1
+                    pos: 94, 260
+                    size_hint: None, None
+                    height: 70
+                    width: 170
+           
+            
+            
+        InfoScreen:
+            name: 'info'
+            FloatLayout:
+                Label:
+                    text: 'SSID: ' + app.WifiNetwork

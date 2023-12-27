@@ -47,10 +47,11 @@ wss.on('connection', function connection(ws) {
             console.log('Connected to external STOMP server:', frame);
             const connectedFrame = 'CONNECTED\nversion:1.1\nheart-beat:10000,10000\n\n\0';
             ws.send(connectedFrame);
-            stompClient.send("/app/vin", HEADER );
-            stompClient.send("/app/version", HEADER)
+         
           });
         }
+        // stompClient.send("/app/vin", HEADER );
+        // stompClient.send("/app/version", HEADER)
     } else if (command === 'SUBSCRIBE' && stompClient) {
         // Extract the destination from the SUBSCRIBE frame
         const destination = lines.find(line => line.startsWith('destination:')).split(':')[1].trim();
@@ -64,12 +65,12 @@ wss.on('connection', function connection(ws) {
             headers['destination'] = destination; // Ensure the destination header is included
             const messageFrame = constructStompFrame('MESSAGE', headers, message.body);
             ws.send(messageFrame);
-            // if (destination === '/user/queue/vin') {
-            //     stompClient.send("/app/vin", HEADER );
-            //     stompClient.send("/app/version", HEADER);
-            //   }
+  
+              
         });
-
+        // stompClient.send("/app/vin", HEADER );
+        // stompClient.send("/app/version", HEADER);
+     
       } else if (stompClient) {
         // For other frames like SEND, ACK, etc., forward them to the external STOMP server
         console.log('Forwarding STOMP frame to external STOMP server:', frameStr);
