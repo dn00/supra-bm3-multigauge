@@ -1,0 +1,14 @@
+certifi==2023.11.17
+charset-normalizer==3.3.2
+docopt==0.6.2
+docutils==0.20.1
+idna==3.6
+Kivy==2.2.1
+Kivy-Garden==0.1.5
+Pillow==10.1.0
+pygments==2.17.2
+requests==2.31.0
+stomp.py==8.1.0
+urllib3==2.1.0
+websocket-client==1.7.0
+websockets==12.0
