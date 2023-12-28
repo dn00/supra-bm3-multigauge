@@ -39,6 +39,38 @@ AnchorLayout:
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                     pos: 120, 136
                     gauge_size: 120
+                ReadoutGauge:
+                    label_text: "Eth"
+                    label_unit_text: "%   " 
+                    label_font_size: 18
+                    label_font_name: GaugeFont
+                    value_font_name: GaugeFont
+                    value_size: 14
+                    value: str(app.OilTemp)
+                    pos: 22, 100
+                    size: 20, 10
+                ReadoutGauge:
+                    label_text: "IAT"
+                    label_unit_text: "F   " 
+                    label_font_size: 18
+                    label_font_name: GaugeFont
+                    value_font_name: GaugeFont
+                    value_size: 14
+                    value: str(app.OilTemp)
+                    pos: 82, 100
+                    size: 20, 10
+                ReadoutGauge:
+                    label_text: "Oil-T"
+                    label_unit_text: "psig" 
+                    label_font_size: 18
+                    label_font_name: GaugeFont
+                    value_font_name: GaugeFont
+                    value_size: 14
+                    value: str(app.OilTemp)
+                    pos: 142, 100
+                    size: 20, 10
+       
+                  
     
     
            
