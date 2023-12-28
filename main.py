@@ -2,6 +2,10 @@ import kivy
 import stomp
 from stomp.adapter.ws import WSTransport
 from kivy.app import App
+from kivy.uix.widget import Widget
+from kivy.uix.label import Label
+from kivy.uix.image import Image
+from kivy.uix.floatlayout import FloatLayout
 from websocket import create_connection
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
@@ -13,6 +17,7 @@ import os
 import socket
 import subprocess
 import json
+from kivy.core.window import Window
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 GLOBAL_VERSION = "V0.0.1"
 
@@ -24,6 +29,10 @@ from kivy.config import Config
 Config.set('graphics', 'width', '240')
 Config.set('graphics', 'height', '320')
 from kivy.core.window import Window
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.image import Image
+from kivy.properties import ObjectProperty
 Window.size = (240, 320)
 
 heart_beat = (10000, 10000)
@@ -113,7 +122,7 @@ class BM3:
             # Add other necessary headers like Host, Origin, etc.
         }
        
-        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True)
+        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True, )
         # BM3.Connection.transport = WSTransport([(BM3.URI, 8080)], ws_path='/ws', header=header)
        
      
@@ -135,7 +144,7 @@ class BM3:
         # BM3 lis
         
 
-        BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True)
+        BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True, )
         BM3.Connection.subscribe(destination='/user/queue/version', id=1)
         BM3.Connection.subscribe(destination='/user/queue/id', id=2)
         BM3.Connection.subscribe(destination='/user/queue/vin', id=7)
@@ -271,6 +280,92 @@ class sys:
     #     )
     #     f.close()
 
+class CustomGauge(FloatLayout):
+    label_text = StringProperty('')
+    label_font_size = NumericProperty(24)
+    gauge_image = StringProperty('')
+    gauge_bars = StringProperty('')
+    bars_image = None
+    gauge_size = NumericProperty(60)
+    height = NumericProperty(300)
+    width = NumericProperty(300)
+    label = None
+    gauge = None
+    bars_image = None
+
+    def __init__(self, **kwargs):
+        super(CustomGauge, self).__init__(**kwargs)
+        # self.bind(size=self.update_ui, pos=self.update_ui)
+
+    def on_kv_post(self, base_widget):
+        # Create the label with initial position
+
+
+        # Create the gauge image
+        self.gauge = Image(source=self.gauge_image,
+                           opacity=1,
+                           size_hint=(None, None),
+                           pos=(self.pos[0], self.pos[1]),
+                           size=(self.gauge_size, self.gauge_size - 20))
+        self.add_widget(self.gauge)
+
+        # Create the bars image
+        self.bars_image = Image(opacity=1,
+                                source=self.gauge_bars,
+                                size_hint=(None, None),
+                                pos=(self.pos[0], self.pos[1]),
+                                size=(self.gauge_size, self.gauge_size - 20))
+        self.add_widget(self.bars_image)
+        
+        self.label = Label(text=self.label_text,
+                           font_size=self.gauge_size * 0.17,
+                           halign='center',
+                           valign='middle',
+                          pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.gauge_size / 2),  ((-Window.size[1] / 2) + self.gauge.pos[1] + (self.gauge_size * .05))),
+                          size=(self.gauge_size, self.gauge_size)
+                           )
+        self.add_widget(self.label)
+        print(Window.size)
+        print(self.gauge.size)
+        print(self.gauge.pos)
+        print(self.pos)
+        print(self.label.pos)
+        print("center self", self.center_x, self.center_y)
+        print("posss", self.label.pos[0] -  self.gauge.pos[1])
+        print("label pos", self.label.pos)
+
+       
+        # self.update_ui()  # Initial UI update
+        return super().on_kv_post(base_widget)
+
+    def calculate_label_center(self):
+        center_x = self.x + self.gauge_size / 2
+        center_y = self.y + self.height / 2
+        label_width = self.gauge_size
+        label_height = self.gauge_size
+        pos_x = center_x - label_width / 2
+        pos_y = center_y - label_height / 2
+        print(pos_x, pos_y)
+        return -pos_x, -pos_y
+
+    # def update_ui(self, *args):
+    #     label_pos_x, label_pos_y = self.calculate_label_center()
+    #     if self.label:
+    #         # print(label_pos_x, label_pos_y)
+    #         self.label.pos = (label_pos_x, label_pos_y)  # Update label position
+    #     if self.gauge:
+    #         self.gauge.pos = (self.x, self.y)
+    #     if self.bars_image:
+    #         self.bars_image.pos = (self.x, self.y)  # Update bars image position
+
+    def on_gauge_bars(self, instance, value):
+        if self.bars_image:
+            self.bars_image.source = value
+            
+    def on_label_text(self, instance, value):
+        if self.label:
+            self.label.text = value
+
 class Gauge1Screen(Screen):
     pass
 class InfoScreen(Screen):
@@ -284,7 +379,7 @@ class MainApp(App):
         BM3().start()
         Clock.schedule_interval(self.update_vars, .1)
         Clock.schedule_interval(bm3.send_for_vin, 2)
-        Clock.schedule_interval(self.update_vehicle_data, 2)
+        Clock.schedule_interval(self.update_vehicle_data, .1)
 
         
     TempUnit = StringProperty()
