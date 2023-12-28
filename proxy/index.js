@@ -9,6 +9,56 @@ const ENDPOINT = 'http://localhost:8080/ws';
 const server = http.createServer();
 const wss = new WebSocketServer({ server: server, path: "/ws" });
 
+class StompFrame {
+  constructor(command, destination, headers, body) {
+    this.destination = destination;
+    this.headers = headers;
+    this.command = command
+    this.body = body;
+  }
+}
+
+function parseStompFrame(buffer) {
+  // Find the end of the header section (double newline)
+  const doubleNewlineIndex = buffer.indexOf('\n\n');
+  if (doubleNewlineIndex === -1) {
+    throw new Error('Invalid STOMP frame: No header-body separator found.');
+  }
+
+  // Parse headers
+  let headers = {};
+  let destination = null;
+  let command = null;
+  const headerPart = buffer.slice(0, doubleNewlineIndex).toString();
+  const headerLines = headerPart.split('\n');
+  headerLines.forEach((line) => {
+    const [key, value] = line.split(':');
+    if (key === 'destination') {
+      destination = value;
+    } else if (key === 'SEND') {
+      command = key;
+    } else if (key === 'SUBSCRIBE') {
+      command = key;
+    } else if (key === 'CONNECT') {
+      command = key;
+    }
+     else if (key) {
+      headers[key] = value;
+    }
+  });
+
+  // Extract the body (assuming it ends with a null byte 0x00)
+  let body = null;
+  const bodyStartIndex = doubleNewlineIndex + 2; // After '\n\n'
+  const nullIndex = buffer.indexOf('\0', bodyStartIndex);
+  if (nullIndex !== -1) {
+    body = buffer.slice(bodyStartIndex, nullIndex).toString();
+  } else {
+    throw new Error('Invalid STOMP frame: No null byte terminator for body.');
+  }
+
+  return new StompFrame(command, destination, headers, body);
+}
 function constructStompFrame(command, headers, body) {
     // Construct the headers string
     const headersStr = Object.entries(headers)
@@ -29,8 +79,10 @@ wss.on('connection', function connection(ws) {
 
   ws.on('message', function incoming(frame) {
     try {
-      console.log('Received STOMP frame from Python:', frame);
+      const parsedFrame = parseStompFrame(frame);
+      console.log('Received STOMP ');
       const frameStr = frame.toString();
+      console.log('Command:', parsedFrame.command);
       const lines = frameStr.split('\n');
       const command = lines[0];
       if (command === "CONNECT" && !stompClient) {
@@ -43,11 +95,13 @@ wss.on('connection', function connection(ws) {
           console.log('Connecting to external STOMP server:', ENDPOINT);
           let socket = new SockJS(ENDPOINT);
           stompClient = Stomp.over(socket);
+          stompClient.reconnect_delay = 1E3;
+          stompClient.heartbeat.outgoing = 1E4;
           stompClient.connect({}, function(frame) {
             console.log('Connected to external STOMP server:', frame);
             const connectedFrame = 'CONNECTED\nversion:1.1\nheart-beat:10000,10000\n\n\0';
             ws.send(connectedFrame);
-         
+            // stompClient.send("/app/vin", HEADER );
           });
         }
         // stompClient.send("/app/vin", HEADER );
@@ -64,28 +118,38 @@ wss.on('connection', function connection(ws) {
             let headers = message.headers;
             headers['destination'] = destination; // Ensure the destination header is included
             const messageFrame = constructStompFrame('MESSAGE', headers, message.body);
+            console.log('messageFrame:', messageFrame)
             ws.send(messageFrame);
-  
+            // stompClient.send("/app/vin", HEADER );
+            // stompClient.send("/app/version", HEADER);
               
         });
-        // stompClient.send("/app/vin", HEADER );
-        // stompClient.send("/app/version", HEADER);
+      
      
-      } else if (stompClient) {
+      }
+      
+      else if (command === 'SEND' && stompClient) {
         // For other frames like SEND, ACK, etc., forward them to the external STOMP server
-        console.log('Forwarding STOMP frame to external STOMP server:', frameStr);
-        stompClient.send(frame);
+        console.log('frame.destination:', parsedFrame.destination)
+        console.log('frame.headers:', parsedFrame.headers)
+        console.log('frame.body:', parsedFrame.body)
+        // get header
+        // parse frame string
+        
+        stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body);
+      } else if (command === 'NEXT' && stompClient) {
+        console.log('CONTINUE frame received from Python app. Ignoring it.')
       }
     } catch (error) {
       console.error('Error handling STOMP frame:', error);
     }
   });
 
-  ws.on('close', function close() {
-    console.log('Python app disconnected');
-    if (stompClient) {
-      stompClient.disconnect();
-      stompClient = null;
-    }
-  });
+  // ws.on('close', function close() {
+  //   console.log('Python app disconnected');
+  //   if (stompClient) {
+  //     stompClient.disconnect();
+  //     stompClient = null;
+  //   }
+  // });
 });

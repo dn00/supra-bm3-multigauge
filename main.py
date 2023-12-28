@@ -5,12 +5,14 @@ from kivy.app import App
 from websocket import create_connection
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
+from payloads import jwt, big_payload
 import threading
 import websocket
 import sys
 import os
 import socket
 import subprocess
+import json
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 GLOBAL_VERSION = "V0.0.1"
 
@@ -62,7 +64,19 @@ class BM3:
     Connection = None
     Connected = False
     Listener = None
-    
+    connect_headers = {
+            'accept-version': '1.1,1.0',
+            'heart-beat': '10000,10000',
+            'jwt': jwt
+    }
+        
+    jwt_headers = {
+            'jwt': jwt
+    }
+        
+    app_version_headers = {
+            "app-version":	"1.00.000-1"
+    }
     def connect(self):
         # print(response.text)
         # base_url = "http://10.0.0.2:8080/ws/info"
@@ -99,21 +113,18 @@ class BM3:
             # Add other necessary headers like Host, Origin, etc.
         }
        
-        BM3.Connection = stomp.Connection([(BM3.URI, 8080)])
+        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True)
         # BM3.Connection.transport = WSTransport([(BM3.URI, 8080)], ws_path='/ws', header=header)
        
-        BM3.Listener = MyListener(BM3.Connection)
-        BM3.Connection.set_listener('', BM3.Listener)
+     
         
-        connect_headers = {
-            'accept-version': '1.1,1.0',
-            'heart-beat': '10000,10000',
-        }
+
         
         # ws_headers = {
             
         # }
-
+        BM3.Listener = MyListener(BM3.Connection)
+        BM3.Connection.set_listener('', BM3.Listener)
         WS = WSTransport([(BM3.URI, 8080)])
         BM3.Connection.transport = WS
         socket = websocket.create_connection(
@@ -121,12 +132,29 @@ class BM3:
         BM3.Connection.transport.socket = socket
         # socket.send('123123')
         # WS.socket = socket
+        # BM3 lis
+        
 
-        BM3.Connection.connect(headers=connect_headers, wait=True, with_connect_command=True)
+        BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True)
         BM3.Connection.subscribe(destination='/user/queue/version', id=1)
         BM3.Connection.subscribe(destination='/user/queue/id', id=2)
+        BM3.Connection.subscribe(destination='/user/queue/vin', id=7)
+        BM3.Connection.subscribe(destination='/user/queue/ram', id=8)
 
-        BM3.Connection.subscribe(destination='/user/queue/vin', id=3)
+        BM3.Connection.subscribe(destination='/queue/dashdata', id=4)
+        BM3.Connection.subscribe(destination='/queue/dashstatus', id=5)
+
+        # dict to string
+        # json.dumps(dash_1)
+        # dict to json
+        # json.loads(dash_1)
+        # escape double quotes
+        # json.dumps(dash_1).replace('"', '\\"')
+
+        BM3.Connection.send(destination='/app/startdash', headers=self.jwt_headers
+    , body=json.dumps(big_payload))
+        # BM3.Connection.send_frame(cmd="SEND", body=dash_2)
+        # BM3.Connection.send_frame(cmd="SEND", body=dash_3)
         # BM3.Connection.connect(with_connect_command=True, wait=True)
         # BM3.Connection.('CONNECT', headers=connect_headers)
         # BM3.Connection.send_frame('CONNECT', headers=connect_headers)
@@ -139,6 +167,11 @@ class BM3:
     
     def send(self, message):
         BM3.Connection.send(body=message, destination='/topic/bm3')
+        
+    def send_for_vin(self):
+        # BM3.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
+        BM3.Connection.send(destination='/app/vin', headers=BM3.app_version_headers, body="")
+        # BM3.Connection.send(destination='/app/ram', headers=BM3.app_version_headers, body="")
         
     def subscribe_vin(self):
         BM3.Connection.subscribe(destination='/user/queue/vin', id='vin', ack='auto')
@@ -155,7 +188,6 @@ class BM3:
         BM3ConnectionThread.start()
         
 
-BM3().start()
 
 class Car:
     class Data:
@@ -248,8 +280,11 @@ class InfoScreen(Screen):
         sys.get_system_info = False
 class MainApp(App):
     def build(self):
+        bm3 = BM3
+        BM3().start()
         Clock.schedule_interval(self.update_vars, .1)
-        Clock.schedule_interval(self.update_vehicle_data, .01)
+        Clock.schedule_interval(bm3.send_for_vin, 2)
+        Clock.schedule_interval(self.update_vehicle_data, 2)
 
         
     TempUnit = StringProperty()
