@@ -95,9 +95,10 @@ class BM3:
     URI = "localhost"
     WS = None
     Connection = None
-    Connected = False
+    Connected = True
     Listener = None
     car_data = None
+    last_car_data_received = time.time() + 1
     connect_headers = {
             'accept-version': '1.1,1.0',
             'heart-beat': '10000,10000',
@@ -131,7 +132,8 @@ class BM3:
             else:
                 result_dict[str(i)] = value.strip('"')
         
-        self.car_data = result_dict
+        BM3.car_data = result_dict
+        BM3.last_car_data_received = time.time()
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
@@ -152,7 +154,7 @@ class BM3:
         # Make the GET request to the SockJS /info endpoint with headers
         # response = requests.get(base_url, params=params, headers=headers)
         # print (response.text)
-        # BM3.WS = create_connection("ws://10.0.0.2:8080/ws/220/2n5h500l/websocket",
+        # self.WS = create_connection("ws://10.0.0.2:8080/ws/220/2n5h500l/websocket",
         header = {
                 "Accept": "*/*",
                         "Accept-Encoding": "gzip, deflate, br",
@@ -174,25 +176,26 @@ class BM3:
             # Add other necessary headers like Host, Origin, etc.
         }
        
-        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True, )
-        # BM3.Connection.transport = WSTransport([(BM3.URI, 8080)], ws_path='/ws', header=header)
+        # self.Connection.transport = WSTransport([(self.URI, 8080)], ws_path='/ws', header=header)
 
         # ws_headers = {
             
         # }
-        BM3.Listener = MyListener(BM3.Connection, callback=self.proxy_callback)
+        BM3.Listener = MyListener(BM3().Connection, callback=self.proxy_callback)
         
-        WS = WSTransport([(BM3.URI, 8080)])
+        WS = WSTransport([(BM3().URI, 8080)])
+        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True, )
+        
         BM3.Connection.transport = WS
         socket = websocket.create_connection(
-                        f"ws://{BM3.URI}:8081/ws", header=header)
-        # BM3.Connection.set_listener('', BM3.Listener)
+                        f"ws://{self.URI}:8081/ws", header=header)
+        # self.Connection.set_listener('', self.Listener)
         BM3.Connection.transport.socket = socket
         # socket.send('123123')
         # WS.socket = socket
         # BM3 lis
         
-        BM3.Connection.set_listener('', BM3.Listener)
+        BM3.Connection.set_listener('', BM3().Listener)
 
         BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True, )
         BM3.Connection.subscribe(destination='/user/queue/version', id=1)
@@ -202,43 +205,46 @@ class BM3:
 
         BM3.Connection.subscribe(destination='/queue/dashdata', id=4)
         BM3.Connection.subscribe(destination='/queue/dashstatus', id=5)
-
-        # delay
-        time.sleep(3)
-        self.start_dashboard()
+        BM3.Connected = True
         
 
     def disconnect(self):
-        BM3.Connection.disconnect()
-        BM3.Connected = False
+        self.Connection.disconnect()
+        self.Connected = False
     
     def send(self, message):
-        BM3.Connection.send(body=message, destination='/topic/bm3')
+        self.Connection.send(body=message, destination='/topic/bm3')
     
-    def start_dashboard(self):
-        # BM3.Connection.send(destination='/app/startdash'
-        #     , body=json.dumps(big_payload))    
-        BM3.Connection.send(destination='/app/vin', headers=BM3.app_version_headers, body="")
+    def request_car_data(self):
+        while True:
+            time.sleep(.1)
+            if BM3.Connected and BM3.last_car_data_received + .1 < time.time():   
+                # self.Connection.send(destination='/app/vin', headers=self.app_version_headers, body="")
+                BM3.Connection.send(destination='/app/startdash'
+                        , body=json.dumps(big_payload))
     
     def send_for_vin(self):
-        # BM3.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
-        BM3.Connection.send(destination='/app/vin', headers=BM3.app_version_headers, body="")
+        # self.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
+        self.Connection.send(destination='/app/vin', headers=self.app_version_headers, body="")
 
     def subscribe_vin(self):
-        BM3.Connection.subscribe(destination='/user/queue/vin', id='vin', ack='auto')
+        self.Connection.subscribe(destination='/user/queue/vin', id='vin', ack='auto')
     
     def subscribe(self):
-        BM3.Connection.subscribe(destination='/topic/bm3', id=1, ack='auto')
+        self.Connection.subscribe(destination='/topic/bm3', id=1, ack='auto')
     
     def unsubscribe(self):
-        BM3.Connection.unsubscribe(id=1)
+        self.Connection.unsubscribe(id=1)
         
-    def start(bm3, callback=None):
-        BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=bm3.connect)
+    def start(self):
+        BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=self.connect)
         BM3ConnectionThread.start()
-       
         
-
+    def update_thread(self):
+        BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
+        print('starting update thread')
+        BM3UpdateThread.start()
+       
 class Car:
     class Data:
         Boost = CarDiagData("4205", 0)
@@ -336,7 +342,7 @@ class ReadoutGauge(FloatLayout):
     label_text = StringProperty()
     label_unit_text = StringProperty()
     label_font_size = NumericProperty(24)
-    pos = ListProperty()
+    # pos = ListProperty()
     size = ListProperty()
     value = StringProperty("0")
     value_size = NumericProperty()
@@ -347,26 +353,25 @@ class ReadoutGauge(FloatLayout):
     def on_kv_post(self, base_widget):
         self.label = Label(text=self.label_text,
                            bold=True,
+                           halign='left',
                            font_size=self.label_font_size,
                            font_name=self.label_font_name,
                               pos=((-Window.size[0] / 2) + self.pos[0], (-Window.size[1] / 2) + self.pos[1]),
                           size=(self.size[0], self.size[1])
-                          
-                          )
+        )
+        self.readout = Label(text=self.value,
+                           font_size=self.value_size,
+                            # halign='left',
+                            # valign='middle',
+                            font_name=self.value_font_name,
+                              pos=((-Window.size[0] / 2) + self.pos[0] + 5, (-Window.size[1] / 2) + self.pos[1] - self.label_font_size),
+                               size=(self.size[0], self.size[1])
+                            )
         self.unit_text = Label(text=self.label_unit_text,
                            font_size=self.label_font_size * 0.5,
                            font_name=self.label_font_name,
-                           halign="center",
-                              pos=((-Window.size[0] / 2) + (self.label.width) + self.pos[0] + 10 , (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
+                              pos=((-Window.size[0] / 2) + (self.label.width) + self.pos[0] + (len(self.label.text) * 2), (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
                           size=(self.size[0], self.size[1]))
-        self.readout = Label(text=self.value,
-                           font_size=self.value_size,
-                            halign='left',
-                            valign='middle',
-                            font_name=self.value_font_name,
-                              pos=((-Window.size[0] / 2) + self.pos[0]  - self.label_font_size + 16, (-Window.size[1] / 2) + self.pos[1] - self.label_font_size),
-                               size=(self.size[0], self.size[1])
-                            )
         self.add_widget(self.readout)
         self.add_widget(self.unit_text)
         self.add_widget(self.label)
@@ -380,15 +385,16 @@ class ReadoutGauge(FloatLayout):
 class CustomGauge(FloatLayout):
     label_text = StringProperty('')
     label_font_size = NumericProperty(24)
+    label_unit_text = StringProperty('')
     gauge_image = StringProperty('')
     gauge_bars = StringProperty('')
-    bars_image = None
     gauge_size = NumericProperty(60)
-    height = NumericProperty(300)
-    width = NumericProperty(300)
+    height = NumericProperty(0)
+    width = NumericProperty(0)
     label = None
     gauge = None
     bars_image = None
+    label_unit = None
 
     def __init__(self, **kwargs):
         super(CustomGauge, self).__init__(**kwargs)
@@ -396,32 +402,47 @@ class CustomGauge(FloatLayout):
 
     def on_kv_post(self, base_widget):
         # Create the label with initial position
-
+        
+        self.height = self.gauge_size 
+        self.width = self.gauge_size * 1.5
 
         # Create the gauge image
         self.gauge = Image(source=self.gauge_image,
                            opacity=1,
                            size_hint=(None, None),
-                           pos=(self.pos[0], self.pos[1]),
-                           size=(self.gauge_size, self.gauge_size - 20))
+                           pos=(self.pos[0], self.pos[1] + (self.pos[1] - self.height) / 2),
+                           size=(self.width, self.height))
+        
         self.add_widget(self.gauge)
 
         # Create the bars image
         self.bars_image = Image(opacity=1,
                                 source=self.gauge_bars,
                                 size_hint=(None, None),
-                                pos=(self.pos[0], self.pos[1]),
-                                size=(self.gauge_size, self.gauge_size - 20))
+                                pos=(self.pos[0],  self.pos[1] + (self.pos[1] - self.height) / 2),
+                                size=(self.width, self.height))
+        
         self.add_widget(self.bars_image)
         
         self.label = Label(text=self.label_text,
-                           font_size=self.gauge_size * 0.17,
+                           font_size=self.gauge_size * 0.25,
                            halign='center',
                            valign='middle',
-                          pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.gauge_size / 2),  ((-Window.size[1] / 2) + self.gauge.pos[1] + (self.gauge_size * .05))),
-                          size=(self.gauge_size, self.gauge_size)
+                          pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2),  ((-Window.size[1] / 2) + self.gauge.pos[1] - (self.height * .05))),
+                          size=(self.width, self.height)
                            )
         self.add_widget(self.label)
+        if (self.label_unit_text != ''):
+            print('sadasdad')
+            self.label_unit = Label(text=self.label_unit_text,
+                            font_size=self.gauge_size * 0.1,
+                            halign='center',
+                            valign='middle',
+                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .4))),
+                            size=(self.width, self.height)
+                            )
+            
+            self.add_widget(self.label_unit)
        
         # self.update_ui()  # Initial UI update
         return super().on_kv_post(base_widget)
@@ -443,11 +464,16 @@ class InfoScreen(Screen):
         sys.get_system_info = True
     def on_pre_leave(self):
         sys.get_system_info = False
+
+
+BM3().start()
+BM3().update_thread()
 class MainApp(App):
     def build(self):
-        self.bm3 = BM3()
-        BM3.start(self.bm3)
-        Clock.schedule_interval(self.update_vars, .1)
+        # self.bm3 = BM3()
+        # BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=BM3().connect)
+        # BM3ConnectionThread.start()
+        Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
         
@@ -461,14 +487,14 @@ class MainApp(App):
     VIN = StringProperty()
 
     # Vehicle
-    Boost = NumericProperty()
-    RPM = NumericProperty()
-    CoolantTemp = NumericProperty()
-    OilTemp = NumericProperty()
-    IntakeAirTemp = NumericProperty()
-    BM3EthanolPercent = NumericProperty()
-    Ign1Timing = NumericProperty()
-    AFR = NumericProperty()
+    Boost = NumericProperty(0)
+    RPM = NumericProperty(0)
+    CoolantTemp = NumericProperty(0)
+    OilTemp = NumericProperty(0)
+    IntakeAirTemp = NumericProperty(0)
+    BM3EthanolPercent = NumericProperty(0)
+    Ign1Timing = NumericProperty(0)
+    AFR = NumericProperty(0)
     
     # Gauge Bar Images
     OilTemp_Image = StringProperty()
@@ -478,10 +504,6 @@ class MainApp(App):
     Ign1Timing_Image = StringProperty()
     AFR_Image = StringProperty()
     
-    
-    OilTemp_Max = Car.gauge.persegment.OilTemp_max
-
-
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
         self.ipAddress = sys.ip
@@ -489,13 +511,14 @@ class MainApp(App):
             self.get_IP()
     
     def update_vehicle_data(self, *args):
-        self.Boost = self.bm3.get_car_data(Car.Data.Boost)
-        self.IntakeAirTemp = self.bm3.get_car_data(Car.Data.IntakeAirTemp)
-        self.BM3EthanolPercent = self.bm3.get_car_data(Car.Data.BM3EthanolPercent)
+       
+        self.Boost = BM3().get_car_data(Car.Data.Boost)
+        self.IntakeAirTemp = BM3().get_car_data(Car.Data.IntakeAirTemp)
+        self.BM3EthanolPercent = BM3().get_car_data(Car.Data.BM3EthanolPercent)
         self.RPM = Car.Data.RPM.value
-        self.CoolantTemp = self.bm3.get_car_data(Car.Data.CoolantTemp)
-        self.Ign1Timing = self.bm3.get_car_data(Car.Data.Ign1Timing)
-        self.AFR = float(self.bm3.get_car_data(Car.Data.AFR))
+        self.CoolantTemp = BM3().get_car_data(Car.Data.CoolantTemp)
+        self.Ign1Timing = BM3().get_car_data(Car.Data.Ign1Timing)
+        self.AFR = float(BM3().get_car_data(Car.Data.AFR))
         self.OilTemp = Car.Data.OilTemp.value
         self.VIN = Car.Data.VIN
 

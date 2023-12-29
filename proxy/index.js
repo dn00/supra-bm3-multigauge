@@ -3,6 +3,7 @@ const http = require('http');
 const Stomp = require('stompjs');
 const SockJS = require('sockjs-client');  // Ensure you have sockjs-client installed
 
+const TEST = true;
 const HEADER = {"app-version": "1.00.000-1"};
 const ENDPOINT = 'http://localhost:8080/ws'; 
 
@@ -110,9 +111,6 @@ wss.on('connection', function connection(ws) {
         // Extract the destination from the SUBSCRIBE frame
         const destination = lines.find(line => line.startsWith('destination:')).split(':')[1].trim();
         console.log('Subscribing to:', destination);
-
-        // Subscribe to the destination and set up a callback to handle incoming messages
-        
         stompClient.subscribe(destination, function(message) {
             console.log('Message received from subscribed destination:', message);
             let headers = message.headers;
@@ -129,24 +127,30 @@ wss.on('connection', function connection(ws) {
         // For other frames like SEND, ACK, etc., forward them to the external STOMP server
         console.log('frame.destination:', parsedFrame.destination)
         console.log('frame.headers:', parsedFrame.headers)
-        console.log('frame.body:', parsedFrame.body)
+        // console.log('frame.body:', parsedFrame.body)
         // get header
         // parse frame string
         
         stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body);
+        if (TEST && parsedFrame.destination === '/app/startdash') {
+          // send /queue/dashdata for 2 seconds every .1 seconds
+          console.log("TESTING")
+          const test_interval = setInterval(() => {
+            const messageFrame = constructStompFrame('MESSAGE', {
+              destination: '/queue/dashdata',
+            }, testPayload);
+            ws.send(messageFrame);
+          }, 200);
+
+          setTimeout(() => {
+            clearInterval(test_interval);
+          }, 2000);
+
+        }
       } else if (command === 'NEXT' && stompClient) {
         console.log('CONTINUE frame received from Python app. Ignoring it.')
+      
       }
-
-      // Set interval to send heartbeat messages to the Python app
-      // if (stompClient) {
-      //   setInterval(() => {
-      //     const messageFrame = constructStompFrame('MESSAGE', {
-      //       destination: '/queue/dashdata',
-      //     }, testPayload);
-      //     ws.send(messageFrame);
-      //   }, 2000);
-      // }
     } catch (error) {
       console.error('Error handling STOMP frame:', error);
     }
