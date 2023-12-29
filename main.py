@@ -17,6 +17,7 @@ import os
 import socket
 import subprocess
 import json
+import time
 from kivy.core.window import Window
 from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 GLOBAL_VERSION = "V0.0.1"
@@ -36,12 +37,33 @@ from kivy.properties import ObjectProperty
 Window.size = (240, 320)
 
 heart_beat = (10000, 10000)
+
+class DESTINATIONS:
+    CAR_VIN = '/user/queue/vin'
+    CAR_DASH_DATA = '/queue/dashdata'
+    CAR_STATUS = 'car_status'
+class CarDiagData:
+    PID = "-1"
+    value = 0
+    def __init__(self, pid, value = 0):
+        self.PID = pid
+        self.value = value
+
 class MyListener(stomp.ConnectionListener):
-    def __init__(self, conn):
+    def __init__(self, conn, callback = None):
         self.conn = conn
+        self.callback = callback
         
-    def on_message(self, headers, message):
-        print(f'Received: {message}')
+    def on_message(self, frame):
+        print(f'Message: ' + frame.headers['destination'])
+        if self.callback:
+            if frame.headers['destination'] == DESTINATIONS.CAR_VIN:
+                self.callback(DESTINATIONS.CAR_VIN, frame.body)
+            elif frame.headers['destination'] == DESTINATIONS.CAR_DASH_DATA:
+                self.callback(DESTINATIONS.CAR_DASH_DATA, frame.body)
+        # print(f'Message: {headers.destination}, {message}')
+        # if self.callback:
+        #     self.callback(headers, message)
         
     def on_error(self, frame):
         print(f'Error: {frame}')
@@ -62,17 +84,20 @@ class MyListener(stomp.ConnectionListener):
         
         print('Heartbeat')
         
-    def on_before_message(self, headers, body):
-        print('Before message')
+    # def on_before_message(self, headers, body):
+    #     print('Before message')
         
-    def on_receipt(self, headers, body):
-        print('Receipt')
+    # def on_receipt(self, headers, body):
+    #     print('Receipt')
+
+
 class BM3:
     URI = "localhost"
     WS = None
     Connection = None
     Connected = False
     Listener = None
+    car_data = None
     connect_headers = {
             'accept-version': '1.1,1.0',
             'heart-beat': '10000,10000',
@@ -86,6 +111,33 @@ class BM3:
     app_version_headers = {
             "app-version":	"1.00.000-1"
     }
+    
+    
+    def proxy_callback(self, type, message):
+        print('proxy_callback', type, message)
+        if type == DESTINATIONS.CAR_VIN:
+            # self.handle_car_data(message)
+            pass
+        elif type == DESTINATIONS.CAR_DASH_DATA:
+            self.handle_car_data(message)
+    
+    def handle_car_data(self, payload):
+        split_payload = payload.split(',')
+        result_dict = {}
+        for i, value in enumerate(split_payload):
+            split_value = value.strip('"').split('+')
+            if len(split_value) == 2:
+                result_dict[split_value[0]] = split_value[1]
+            else:
+                result_dict[str(i)] = value.strip('"')
+        
+        self.car_data = result_dict
+        
+    def get_car_data(self, car_diag_object: CarDiagData):
+        if self.car_data:
+            return self.car_data[car_diag_object.PID]
+        return -1
+    
     def connect(self):
         # print(response.text)
         # base_url = "http://10.0.0.2:8080/ws/info"
@@ -124,25 +176,23 @@ class BM3:
        
         BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True, )
         # BM3.Connection.transport = WSTransport([(BM3.URI, 8080)], ws_path='/ws', header=header)
-       
-     
-        
 
-        
         # ws_headers = {
             
         # }
-        BM3.Listener = MyListener(BM3.Connection)
-        BM3.Connection.set_listener('', BM3.Listener)
+        BM3.Listener = MyListener(BM3.Connection, callback=self.proxy_callback)
+        
         WS = WSTransport([(BM3.URI, 8080)])
         BM3.Connection.transport = WS
         socket = websocket.create_connection(
                         f"ws://{BM3.URI}:8081/ws", header=header)
+        # BM3.Connection.set_listener('', BM3.Listener)
         BM3.Connection.transport.socket = socket
         # socket.send('123123')
         # WS.socket = socket
         # BM3 lis
         
+        BM3.Connection.set_listener('', BM3.Listener)
 
         BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True, )
         BM3.Connection.subscribe(destination='/user/queue/version', id=1)
@@ -153,22 +203,10 @@ class BM3:
         BM3.Connection.subscribe(destination='/queue/dashdata', id=4)
         BM3.Connection.subscribe(destination='/queue/dashstatus', id=5)
 
-        # dict to string
-        # json.dumps(dash_1)
-        # dict to json
-        # json.loads(dash_1)
-        # escape double quotes
-        # json.dumps(dash_1).replace('"', '\\"')
-
-        BM3.Connection.send(destination='/app/startdash', headers=self.jwt_headers
-    , body=json.dumps(big_payload))
-        # BM3.Connection.send_frame(cmd="SEND", body=dash_2)
-        # BM3.Connection.send_frame(cmd="SEND", body=dash_3)
-        # BM3.Connection.connect(with_connect_command=True, wait=True)
-        # BM3.Connection.('CONNECT', headers=connect_headers)
-        # BM3.Connection.send_frame('CONNECT', headers=connect_headers)
-        # self.subscribe_vin()
-        # BM3.Connected = True
+        # delay
+        time.sleep(3)
+        self.start_dashboard()
+        
 
     def disconnect(self):
         BM3.Connection.disconnect()
@@ -176,12 +214,16 @@ class BM3:
     
     def send(self, message):
         BM3.Connection.send(body=message, destination='/topic/bm3')
-        
+    
+    def start_dashboard(self):
+        # BM3.Connection.send(destination='/app/startdash'
+        #     , body=json.dumps(big_payload))    
+        BM3.Connection.send(destination='/app/vin', headers=BM3.app_version_headers, body="")
+    
     def send_for_vin(self):
         # BM3.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
         BM3.Connection.send(destination='/app/vin', headers=BM3.app_version_headers, body="")
-        # BM3.Connection.send(destination='/app/ram', headers=BM3.app_version_headers, body="")
-        
+
     def subscribe_vin(self):
         BM3.Connection.subscribe(destination='/user/queue/vin', id='vin', ack='auto')
     
@@ -191,36 +233,46 @@ class BM3:
     def unsubscribe(self):
         BM3.Connection.unsubscribe(id=1)
         
-    def start(self):
-        bm3 = BM3()
+    def start(bm3, callback=None):
         BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=bm3.connect)
         BM3ConnectionThread.start()
+       
         
-
 
 class Car:
     class Data:
-        RPM = 0
-        Speed = 0
-        OilTemp = 100
-        CoolantTemp = 50
-        IntakeTemp = 0
+        Boost = CarDiagData("4205", 0)
+        RPM = CarDiagData("-1", 0)
+        Speed = CarDiagData("-1", 0)
+        OilTemp = CarDiagData("-1", 0)
+        CoolantTemp = CarDiagData("5805", 0)
+        IntakeAirTemp = CarDiagData("580F", 0)
+        BM3EthanolPercent = CarDiagData("60038096", 0)
+        Ign1Timing = CarDiagData("580E", 0)
+        AFR = CarDiagData("582C", 0)
         VIN = ''
         
     class gauge:
         class image:
-            OilTemp = "data/gauges/normal/S2K_0.png"
-            CoolantTemp = "data/gauges/normal/S2K_0.png"
-            IntakeTemp = "data/gauges/normal/S2K_0.png"
+            OilTemp = "data/gauges/normal/s2k_"
+            Boost = "data/gauges/normal/s2k_"
+            CoolantTemp = "data/gauges/normal/s2k_"
+            IntakeTemp = "data/gauges/normal/s2k_"
 
         class persegment:
+            Boost_max = 25
             OilTemp_max = 300
             CoolantTemp_max = 300
             IntakeTemp_max = 300
-
-            OilTemp = round(OilTemp_max / 32)
-            CoolantTemp = round(CoolantTemp_max / 32)
-            IntakeTemp = round(IntakeTemp_max / 32)
+            Ign1Timing_max = 50
+            AFR_max = 50
+            
+            Boost = round(Boost_max / 32, 2)
+            OilTemp = round(OilTemp_max / 32, 2)
+            CoolantTemp = round(CoolantTemp_max / 32, 2)
+            IntakeTemp = round(IntakeTemp_max / 32, 2)
+            Ign1Timing = round(Ign1Timing_max / 32, 2)
+            AFR = round(AFR_max / 32, 2)
             
     class dev:  # used for development of GUI and testing
         Speed = 0
@@ -393,12 +445,11 @@ class InfoScreen(Screen):
         sys.get_system_info = False
 class MainApp(App):
     def build(self):
-        bm3 = BM3
-        BM3().start()
+        self.bm3 = BM3()
+        BM3.start(self.bm3)
         Clock.schedule_interval(self.update_vars, .1)
-        # Clock.schedule_interval(bm3.send_for_vin, 2)
+        # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
-
         
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
@@ -410,14 +461,23 @@ class MainApp(App):
     VIN = StringProperty()
 
     # Vehicle
+    Boost = NumericProperty()
     RPM = NumericProperty()
     CoolantTemp = NumericProperty()
     OilTemp = NumericProperty()
-    IntakeTemp = NumericProperty()
+    IntakeAirTemp = NumericProperty()
+    BM3EthanolPercent = NumericProperty()
+    Ign1Timing = NumericProperty()
+    AFR = NumericProperty()
     
+    # Gauge Bar Images
     OilTemp_Image = StringProperty()
+    Boost_image = StringProperty()
     CoolantTemp_Image = StringProperty()
     IntakeTemp_Image = StringProperty()
+    Ign1Timing_Image = StringProperty()
+    AFR_Image = StringProperty()
+    
     
     OilTemp_Max = Car.gauge.persegment.OilTemp_max
 
@@ -429,10 +489,14 @@ class MainApp(App):
             self.get_IP()
     
     def update_vehicle_data(self, *args):
-        self.RPM = Car.Data.RPM
-        self.CoolantTemp = Car.Data.CoolantTemp
-        self.OilTemp = Car.Data.OilTemp
-        self.IntakeTemp = Car.Data.IntakeTemp
+        self.Boost = self.bm3.get_car_data(Car.Data.Boost)
+        self.IntakeAirTemp = self.bm3.get_car_data(Car.Data.IntakeAirTemp)
+        self.BM3EthanolPercent = self.bm3.get_car_data(Car.Data.BM3EthanolPercent)
+        self.RPM = Car.Data.RPM.value
+        self.CoolantTemp = self.bm3.get_car_data(Car.Data.CoolantTemp)
+        self.Ign1Timing = self.bm3.get_car_data(Car.Data.Ign1Timing)
+        self.AFR = float(self.bm3.get_car_data(Car.Data.AFR))
+        self.OilTemp = Car.Data.OilTemp.value
         self.VIN = Car.Data.VIN
 
         if DEVELOPER_MODE == 1:
@@ -447,11 +511,16 @@ class MainApp(App):
                 Car.dev.OilTemp_inc = 1
             self.OilTemp = Car.dev.OilTemp
             
-
-        # if 0 <= int(round(Car.Data.CoolantTemp/Car.gauge.persegment.CoolantTemp)) <= 32:
-        #     self.CoolantTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp))))+'.png')
+        if 0 <= int(round(self.Boost/Car.gauge.persegment.Boost)) <= 32:
+            self.Boost_image = str(Car.gauge.image.Boost+(str(int(round(self.Boost/Car.gauge.persegment.Boost))))+'.png')
+        if 0 <= int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp)) <= 32:
+            self.CoolantTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp))))+'.png')
         if 0 <= int(round(self.OilTemp/Car.gauge.persegment.OilTemp)) <= 32:
             self.OilTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.OilTemp/Car.gauge.persegment.OilTemp))))+'.png')
+        if 0 <= int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing)) <= 32:
+            self.Ign1Timing_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing))))+'.png')
+        if 0 <= int(round(self.AFR/Car.gauge.persegment.AFR)) <= 32:
+            self.AFR_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.AFR/Car.gauge.persegment.AFR))))+'.png')
     
     def get_IP(self):
         if DEVELOPER_MODE == 0:
