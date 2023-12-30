@@ -1,12 +1,14 @@
-import kivy
+from kivymd.app import MDApp
 import stomp
+from kivymd.theming import ThemeManager
 from stomp.adapter.ws import WSTransport
 from kivy.app import App
-from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.image import Image
+from kivymd.uix.chip import MDChip
+from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
-from websocket import create_connection
+from kivy.animation import Animation
 from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 from payloads import jwt, big_payload
@@ -19,7 +21,11 @@ import subprocess
 import json
 import time
 from kivy.core.window import Window
-from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
+from kivy.app import App
+from kivy.uix.widget import Widget
+from kivy.graphics import Color, Rectangle
+from kivymd.uix.chip import MDChip, MDChipText
+from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
 GLOBAL_VERSION = "V0.0.1"
 
 DEVELOPER_MODE = 1           # set to 1 to disable all GPIO, temp probe, and obd stuff
@@ -42,6 +48,9 @@ class DESTINATIONS:
     CAR_VIN = '/user/queue/vin'
     CAR_DASH_DATA = '/queue/dashdata'
     CAR_STATUS = 'car_status'
+    DISCONNECTED = 'disconnected'
+    CONNECTED = 'connected'
+    CONNECTION_ERROR = 'connection_error'
 class CarDiagData:
     PID = "-1"
     value = 0
@@ -67,12 +76,15 @@ class MyListener(stomp.ConnectionListener):
         
     def on_error(self, frame):
         print(f'Error: {frame}')
+        if self.callback:
+            self.callback(DESTINATIONS.CONNECTION_ERROR, None)
     
-    def on_connected(self, headers, body):
-        print(f'Connected: {headers}')
+    def on_connected(self, headers):
+        self.callback(DESTINATIONS.CONNECTED, None)
     
     def on_disconnected(self):
         print('Disconnected')
+        self.callback(DESTINATIONS.DISCONNECTED, None)
         # connect_headers = {
         #     'accept-version': '1.1,1.0',
         #     'heart-beat': '10000,10000'
@@ -92,10 +104,21 @@ class MyListener(stomp.ConnectionListener):
 
 
 class BM3:
+    _instance = None  # Class attribute to hold the single instance
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(BM3, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+    
+    request_data_lock = threading.Lock()  # Lock for the request_car_data method
     URI = "localhost"
     WS = None
     Connection = None
-    Connected = True
+    
+    Connected = False
+    Connecting = False
+    
     Listener = None
     car_data = None
     last_car_data_received = time.time() + 1
@@ -115,12 +138,32 @@ class BM3:
     
     
     def proxy_callback(self, type, message):
-        print('proxy_callback', type, message)
-        if type == DESTINATIONS.CAR_VIN:
-            # self.handle_car_data(message)
-            pass
-        elif type == DESTINATIONS.CAR_DASH_DATA:
+        print(f"Proxy callback triggered with type: {type}")
+
+        if type == DESTINATIONS.CAR_DASH_DATA:
             self.handle_car_data(message)
+
+        elif type == DESTINATIONS.CONNECTED:
+            print('Connected to the server successfully.')
+            self.Connected = True
+            self.Connecting = False
+            self.subscribe_to_queues()
+
+        elif type == DESTINATIONS.DISCONNECTED:
+            print('Disconnected from the server.')
+            if self.Connected:  
+                self.Connected = False
+                self.Connection = None
+                time.sleep(2) 
+                self.connect()
+
+        elif type == DESTINATIONS.CONNECTION_ERROR:
+            print('Connection error encountered.')
+            if self.Connected:
+                self.Connected = False
+                self.Connection = None
+                time.sleep(2)
+                self.connect()
     
     def handle_car_data(self, payload):
         split_payload = payload.split(',')
@@ -132,82 +175,79 @@ class BM3:
             else:
                 result_dict[str(i)] = value.strip('"')
         
-        BM3.car_data = result_dict
-        BM3.last_car_data_received = time.time()
+        self.car_data = result_dict
+        self.last_car_data_received = time.time()
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
             return self.car_data[car_diag_object.PID]
         return -1
     
+    def subscribe_to_queues(self):
+        self.Connection.subscribe(destination='/user/queue/version', id=1)
+        self.Connection.subscribe(destination='/user/queue/id', id=2)
+        self.Connection.subscribe(destination='/user/queue/vin', id=7)
+        self.Connection.subscribe(destination='/user/queue/ram', id=8)
+
+        self.Connection.subscribe(destination='/queue/dashdata', id=4)
+        self.Connection.subscribe(destination='/queue/dashstatus', id=5)
+    
     def connect(self):
-        # print(response.text)
-        # base_url = "http://10.0.0.2:8080/ws/info"
-        # timestamp = int(time.time() * 1000)  # Current time in milliseconds
-        # params = {'t': timestamp}
+            if self.Connecting:
+                # If already attempting to connect, do not start another attempt.
+                print("Connection attempt is already in progress.")
+                return
 
-        # # Define the headers from the provided JSON
-        # headers = {
-        #     # ... (as defined above)
-        # }
+            backoff_time = 1  # Start with a 1 second backoff time
+            max_backoff_time = 3  # Maximum backoff time
 
-        # Make the GET request to the SockJS /info endpoint with headers
-        # response = requests.get(base_url, params=params, headers=headers)
-        # print (response.text)
-        # self.WS = create_connection("ws://10.0.0.2:8080/ws/220/2n5h500l/websocket",
-        header = {
-                "Accept": "*/*",
-                        "Accept-Encoding": "gzip, deflate, br",
-                        "Accept-Language": "en-US,en;q=0.5",
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive, Upgrade",
-                        "Host": "172.29.96.2:8080",
-                        "Origin": "http://172.29.96.1:8181",
-                        "Pragma": "no-cache",
-                        "Sec-Fetch-Dest": "empty",
-                        "Sec-Fetch-Mode": "websocket",
-                        "Sec-Fetch-Site": "same-site",
-                        # "Sec-WebSocket-Extensions": "permessage-deflate",
-                        "Sec-WebSocket-Version": "13",
-                        # "Upgrade": "websocket",
-                        # "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
-                                
-            # This is the version of WebSocket protocol and is almost always 13.
-            # Add other necessary headers like Host, Origin, etc.
-        }
-       
-        # self.Connection.transport = WSTransport([(self.URI, 8080)], ws_path='/ws', header=header)
+            while not self.Connection or not self.Connection.is_connected():
+                try: 
+                        self.Connecting = True
+                    
+                        header = {
+                                    "Accept": "*/*",
+                                            "Accept-Encoding": "gzip, deflate, br",
+                                            "Accept-Language": "en-US,en;q=0.5",
+                                            "Cache-Control": "no-cache",
+                                            "Connection": "keep-alive, Upgrade",
+                                            "Host": "172.29.96.2:8080",
+                                            "Origin": "http://172.29.96.1:8181",
+                                            "Pragma": "no-cache",
+                                            "Sec-Fetch-Dest": "empty",
+                                            "Sec-Fetch-Mode": "websocket",
+                                            "Sec-Fetch-Site": "same-site",
+                                            # "Sec-WebSocket-Extensions": "permessage-deflate",
+                                            "Sec-WebSocket-Version": "13",
+                                            # "Upgrade": "websocket",
+                                            # "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+                                                    
+                            }
+                        
 
-        # ws_headers = {
-            
-        # }
-        BM3.Listener = MyListener(BM3().Connection, callback=self.proxy_callback)
-        
-        WS = WSTransport([(BM3().URI, 8080)])
-        BM3.Connection = stomp.Connection([(BM3.URI, 8080)], auto_content_length=True, )
-        
-        BM3.Connection.transport = WS
-        socket = websocket.create_connection(
-                        f"ws://{self.URI}:8081/ws", header=header)
-        # self.Connection.set_listener('', self.Listener)
-        BM3.Connection.transport.socket = socket
-        # socket.send('123123')
-        # WS.socket = socket
-        # BM3 lis
-        
-        BM3.Connection.set_listener('', BM3().Listener)
+                        self.Listener = MyListener(self.Connection, callback=self.proxy_callback)
+                            
+                        WS = WSTransport([(self.URI, 8080)])
+                        self.Connection = stomp.Connection([(self.URI, 8080)], auto_content_length=True, )
+                
+                        self.Connection.transport = WS
+                        socket = websocket.create_connection(
+                                            f"ws://{self.URI}:8081/ws", header=header)
+                        self.Connection.transport.socket = socket
+                    
+                        self.Connection.set_listener('', self.Listener)
+                        self.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True)
+                        time.sleep(2)
+                except Exception as e:
+                    print(f"Connection failed: {e}")
+                    # Incremental backoff
+                    backoff_time = min(backoff_time * 2, max_backoff_time)
 
-        BM3.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True, )
-        BM3.Connection.subscribe(destination='/user/queue/version', id=1)
-        BM3.Connection.subscribe(destination='/user/queue/id', id=2)
-        BM3.Connection.subscribe(destination='/user/queue/vin', id=7)
-        BM3.Connection.subscribe(destination='/user/queue/ram', id=8)
+                finally:
+                    self.Connecting = False
+                    time.sleep(backoff_time)  # Backoff before retrying
 
-        BM3.Connection.subscribe(destination='/queue/dashdata', id=4)
-        BM3.Connection.subscribe(destination='/queue/dashstatus', id=5)
-        BM3.Connected = True
-        
-
+                    
     def disconnect(self):
         self.Connection.disconnect()
         self.Connected = False
@@ -216,13 +256,31 @@ class BM3:
         self.Connection.send(body=message, destination='/topic/bm3')
     
     def request_car_data(self):
+        backoff_time = 0.1  # Initial backoff time
+        max_backoff_time = 3 # Maximum backoff time
+        pause_threshold = 0.3  # Adjust this value based on the server's response time
         while True:
-            time.sleep(.1)
-            if BM3.Connected and BM3.last_car_data_received + .1 < time.time():   
-                # self.Connection.send(destination='/app/vin', headers=self.app_version_headers, body="")
-                BM3.Connection.send(destination='/app/startdash'
-                        , body=json.dumps(big_payload))
-    
+            current_time = time.time()
+            time_since_last_data = current_time - self.last_car_data_received
+
+            if self.Connected and time_since_last_data > pause_threshold:
+                with self.request_data_lock:
+                    print('sending request')
+                    if time.time() - self.last_car_data_received > pause_threshold:
+                        try:
+                            self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+                            self.last_car_data_received = time.time()
+                            time.sleep(backoff_time) 
+                        
+                            backoff_time = min(backoff_time * 3, max_backoff_time)
+                        except Exception as e:
+                            # stop the thread if the connection is lost
+                            # break
+                            time.sleep(2)
+            else:
+                backoff_time = 0.1
+                time.sleep(0.1)  # Adjust the sleep time as needed.
+
     def send_for_vin(self):
         # self.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
         self.Connection.send(destination='/app/vin', headers=self.app_version_headers, body="")
@@ -465,10 +523,170 @@ class InfoScreen(Screen):
     def on_pre_leave(self):
         sys.get_system_info = False
 
+# class BlackBackgroundWidget(Widget):
+#     def __init__(self, **kwargs):
+#         super(BlackBackgroundWidget, self).__init__(**kwargs)
+#         with self.canvas.before:
+#             Color(0, 0, 0, 1)  # Set the color to black (r, g, b, a)
+#             self.rect = Rectangle(size=self.size, pos=self.pos)
+
+#         self.bind(size=self._update_rect, pos=self._update_rect)
+
+#     def _update_rect(self, instance, value):
+#         self.rect.size = instance.size
+class StatusChip(MDChip):
+    chip_text = StringProperty("")
+    active = BooleanProperty(False)
+    failed = BooleanProperty(False)  # Add a failed attribute 
+    def __init__(self, **kwargs):
+        super(StatusChip, self).__init__(**kwargs)
+        self.label = MDChipText(
+                    theme_text_color= "Custom",
+                    text=self.chip_text,
+                    # md_bg_color=[0, 0, 0, 0],  # Fully transparent background
+                    # font_size=dp(12),
+                    line_width = self.line_width,
+                    text_color = [.16, .67, .27, 1],  # Green line color
+                )
+        self.add_widget(self.label)
+        self.pos_hint = {"x": 0.01, "center_y": 0.5}
+        self.md_bg_color = [0,0, 0, 1]  # Fully transparent background
+        self.line_color = [.16, .67, .27, 1]  # Green line color
+        self.size_hint = (None, None)
+        self.width = dp(20)  # Starting width, adjust as needed
+        self.line_width = 1
+        self.check = False  # Set to False if you don't want the check icon
+        self.padding = [dp(6), 0, dp(6), 0]  # Horizontal padding
+
+    def on_chip_text(self, instance, value):
+        self.label.text = value
+        self.label.font_size = dp(12)
+        
+
+
+    def animate_colors(self, active_value):
+        # Define the colors for pulsing
+        neon_green = [.16, .67, .27, 1]
+        orange = [1, 0.5, 0, 1]
+        if active_value:
+            # Pulse the background, text, and line colors
+            # self.animate_color_pulse(self, 'md_bg_color', green, yellow)
+            self.animate_color_pulse(self.label, 'text_color', neon_green, orange)
+            self.animate_color_pulse(self, 'line_color', neon_green, orange)
+        else:
+            # Stop pulsing and revert to default colors
+            Animation.cancel_all(self, self.label)
+            self.md_bg_color = [0, 0, 0, 1]  # Default background color
+            self.label.text_color = neon_green  # Default text color
+            self.line_color = neon_green  # Default line color
+
+    def animate_color_pulse(self, widget, color_property, color1, color2, duration=1):
+        # Create an animation that pulses between two colors
+        animation = Animation(**{color_property: color1}, duration=duration) + Animation(**{color_property: color2}, duration=duration)
+        animation.repeat = True  # Make the animation repeat
+        animation.start(widget)
+    
+    def stop_pulsing(self):
+        # Stop all pulsing animations
+        Animation.cancel_all(self, self.label)
+        
+    def update_visual_state(self):
+        """
+        Update the visual state of the chip based on active and failed properties.
+        """
+        if self.active:
+            # If active, start pulsing, regardless of the failed state.
+            self.start_pulsing()
+        elif self.failed:
+            # If not active, but failed, show red without pulsing.
+            self.show_failed_state()
+        else:
+            # If neither active nor failed, revert to default state.
+            self.revert_to_default_state()
+
+    def start_pulsing(self):
+        """
+        Start pulsing between neon green and orange.
+        """
+        neon_green = [.16, .67, .27, 1]
+        orange = [1, 0.5, 0, 1]
+        self.animate_color_pulse(self.label, 'text_color', neon_green, orange)
+        self.animate_color_pulse(self, 'line_color', neon_green, orange)
+
+    def show_failed_state(self):
+        """
+        Show the failed state (red) without pulsing.
+        """
+        self.stop_pulsing()
+        self.line_color = [1, 0, 0, 1]  # Set line color to red
+        self.label.text_color = [1, 0, 0, 1]  # Set text color to red
+
+    def revert_to_default_state(self):
+        """
+        Revert to the default visual state.
+        """
+        self.stop_pulsing()
+        self.md_bg_color = [0, 0, 0, 1]  # Default background color
+        self.line_color = [.16, .67, .27, 1]  # Default line color
+        self.label.text_color = [.16, .67, .27, 1]  # Default text color
+
+    # ... [rest of your existing methods] ...
+
+    def on_active(self, instance, active_value):
+        self.update_visual_state()
+
+    def on_failed(self, instance, failed_value):
+        self.update_visual_state()
+
+class StatusBar(BoxLayout):
+    bg_color = ListProperty([0, 0, 0, 1])  # Default to black background
+
+    def __init__(self, **kwargs):
+        super(StatusBar, self).__init__(**kwargs)
+        self.orientation = 'horizontal'  # Arrange children from left to right
+        self.size_hint_y = None
+        self.height = 30  # Set the height of the status bar
+        self.bind(height=self.update_children_height)
+        self.spacing = 3 # Space between children
+        with self.canvas.before:
+            Color(rgba=self.bg_color)  # Use the background color
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+
+        # Update the rectangle size and position when the widget size changes
+        self.bind(size=self.update_rect, pos=self.update_rect, bg_color=self.update_color)
+
+    def update_rect(self, *args):
+        self.rect.size = self.size
+        self.rect.pos = self.pos
+
+    def update_color(self, *args):
+        self.rect.color = self.bg_color
+
+    def update_children_height(self, *args):
+        # Assuming padding is a list [left, top, right, bottom]
+        top_padding = self.padding[1]
+        bottom_padding = self.padding[3]
+        left_padding = self.padding[0]
+        right_padding = self.padding[2]
+        for child in self.children:
+            # Subtract the top and bottom padding from the height
+            child.height = (self.height) - (top_padding + bottom_padding)
+            child.width = (self.width) - (left_padding + right_padding)
+            
+
+
+    def on_size(self, *args):
+        # Ensure the width of the status bar always matches the window width
+        self.width = Window.width
 
 BM3().start()
 BM3().update_thread()
-class MainApp(App):
+
+
+class MainApp(MDApp):
+    theme_cls = ThemeManager()
+    theme_cls.theme_style = "Dark"
+    theme_cls.primary_palette = "Red"
     def build(self):
         # self.bm3 = BM3()
         # BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=BM3().connect)
@@ -504,6 +722,9 @@ class MainApp(App):
     Ign1Timing_Image = StringProperty()
     AFR_Image = StringProperty()
     
+    BM3Connecting = BooleanProperty(False)
+    BM3Connected = BooleanProperty(False)
+    
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
         self.ipAddress = sys.ip
@@ -511,14 +732,21 @@ class MainApp(App):
             self.get_IP()
     
     def update_vehicle_data(self, *args):
-       
-        self.Boost = BM3().get_car_data(Car.Data.Boost)
-        self.IntakeAirTemp = BM3().get_car_data(Car.Data.IntakeAirTemp)
-        self.BM3EthanolPercent = BM3().get_car_data(Car.Data.BM3EthanolPercent)
+        bm3 = BM3()
+        self.BM3ConnectionConnecting = bm3.Connecting
+        self.BM3Connected = bm3.Connected
+        if not bm3.Connected:
+            return
+        print('update_vehicle_data', bm3.Connected)
+
+        
+        self.Boost = bm3.get_car_data(Car.Data.Boost)
+        self.IntakeAirTemp = bm3.get_car_data(Car.Data.IntakeAirTemp)
+        self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
         self.RPM = Car.Data.RPM.value
-        self.CoolantTemp = BM3().get_car_data(Car.Data.CoolantTemp)
-        self.Ign1Timing = BM3().get_car_data(Car.Data.Ign1Timing)
-        self.AFR = float(BM3().get_car_data(Car.Data.AFR))
+        self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
+        self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
+        self.AFR = float(bm3.get_car_data(Car.Data.AFR))
         self.OilTemp = Car.Data.OilTemp.value
         self.VIN = Car.Data.VIN
 

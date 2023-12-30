@@ -1,6 +1,7 @@
-#:kivy 1.0.9
-
+#:kivy 1.0.0
 #:import Animation kivy.animation.Animation
+#:import MDChip kivymd.uix.chip.MDChip
+#:import MDChip kivymd.uix.chip.MDChipText
 #:import math math
 
 #V1.0.0
@@ -9,13 +10,20 @@
 #:set GaugeFont "data/fonts/Eurostile LT Std Medium.ttf"
 #:set ButtonFont "data/fonts/Eurostile LT Std Extended 2.ttf"
 
-AnchorLayout:
+BoxLayout:
+    orientation: 'vertical'
     ScreenManager:
         id: sm
         Gauge1Screen:
             name: 'gauge1'
             FloatLayout:
-     
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, 1
+                    Rectangle:
+                        size: self.size
+                        pos: self.pos
+          
                 CustomGauge:
                     label_text: str(app.Ign1Timing) + '°'
                     label_font_size: 24
@@ -86,17 +94,13 @@ AnchorLayout:
                         pos: 202, 100
                         size: 20, 10
           
-                Slider:
-                    id: slider
-                    min: 0
-                    max: 12
-                    step: 1
-                    width: 100
-                    pos_hint: {'center_x': 0.4, 'center_y': 0.08}
-                    size_hint: 0.72, 1
-                    value_track_width: 10
-                    
-                    orientation: 'horizontal'
+                # MDSlider:
+                #     pos: 230, 400
+                #     min: 0
+                #     max: 12
+                #     size_hint: None, None
+                #     height: 50
+                #     width: 500
                 # # Rounded Button
                 # Button:
                 #     text: 'brr'
@@ -116,10 +120,40 @@ AnchorLayout:
                 #     pos: 120, 10
                 #     on_press: root.manager.current = 'gauge2'
                   
-    
-    
-           
+            StatusBar:
+                size_hint_y: None
+                height:18
+                width: 800
+                pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
+                padding: 4,4,4,4
+                StatusChip:
+                    color: 0, 0, 0, 1
+                    chip_text: "BM3"
+                    failed: not app.BM3Connected
+                    active: app.BM3Connecting
+                StatusChip:
+                    color: 0, 0, 0, 1
+                    chip_text: "ETH"
+                    failed: not app.BM3Connected or not 7 <= app.BM3EthanolPercent <=50
+                    # active: True
+                StatusChip:
+                    color: 0, 0, 0, 1
+                    chip_text: "READY FOR LAUNCH"
+                    failed: True
+         
             
+        InfoScreen:
+            name: 'info'
+            FloatLayout:
+                Label:
+                    text: 'SSID: ' + app.WifiNetwork
+                    color: 1, 1, 1, 1  # Set text color to white
+                    md_bg_color: 0, 0, 0, 0  # Fully transparent background (R, G, B, Alpha)
+                    line_color: 1, 1, 0, 1  # Bright yellow line color (R, G, B, Alpha)
+                    size_hint: None, None  # Disable size_hint to use explicit size
+                    width: 70
+                    line_width: 1  # Adjust the width of the border line as needed
+                    check: False  # Set to False if you don't want the check icon           
             
         InfoScreen:
             name: 'info'

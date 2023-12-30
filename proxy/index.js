@@ -2,6 +2,7 @@ const WebSocketServer = require('ws').Server;
 const http = require('http');
 const Stomp = require('stompjs');
 const SockJS = require('sockjs-client');  // Ensure you have sockjs-client installed
+const { error } = require('console');
 
 const TEST = true;
 const HEADER = {"app-version": "1.00.000-1"};
@@ -74,9 +75,20 @@ server.listen(8081, function() {
   console.log('Node.js proxy server listening on port 8081');
 });
 
+
 wss.on('connection', function connection(ws) {
   console.log('Python app connected');
   let stompClient = null;
+ 
+  // ws.on('close', function() {
+  //   // Handle disconnect event here
+  //   console.log('WebSocket connection closed');
+  //   // Add your code to handle the disconnect event
+  //   if (stompClient && stompClient.connected) {
+  //     stompClient.disconnect();
+  //     stompClient = null;
+  //   }
+  // });
 
   ws.on('message', function incoming(frame) {
     try {
@@ -95,6 +107,7 @@ wss.on('connection', function connection(ws) {
         if (connectLine) {
           console.log('Connecting to external STOMP server:', ENDPOINT);
           let socket = new SockJS(ENDPOINT);
+          
           stompClient = Stomp.over(socket);
           stompClient.reconnect_delay = 1E3;
           stompClient.heartbeat.outgoing = 1E4;
@@ -104,6 +117,18 @@ wss.on('connection', function connection(ws) {
             ws.send(connectedFrame);
             // stompClient.send("/app/vin", HEADER );
           });
+
+          stompClient.debug = function(str) {
+            console.log('STOMP Debug:', str);
+            if (str.includes("Whoops! Lost connection to")) {
+              if (ws.readyState === 1) {
+                const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
+                ws.send(errorFrame);
+                ws.close();
+                stompClient = null;
+              }
+            }
+          };
         }
         // stompClient.send("/app/vin", HEADER );
         // stompClient.send("/app/version", HEADER)
@@ -120,7 +145,8 @@ wss.on('connection', function connection(ws) {
             ws.send(messageFrame);
             // stompClient.send("/app/vin", HEADER );
             // stompClient.send("/app/version", HEADER);
-        });
+        }
+        );
       }
       
       else if (command === 'SEND' && stompClient) {
@@ -131,7 +157,12 @@ wss.on('connection', function connection(ws) {
         // get header
         // parse frame string
         
-        stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body);
+        // check stompClient if connected
+        // if not connected, send error frame
+        // if connected, send frame to stompClient
+        
+        stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body)
+        
         if (TEST && parsedFrame.destination === '/app/startdash') {
           // send /queue/dashdata for 2 seconds every .1 seconds
           console.log("TESTING")
