@@ -2,6 +2,7 @@
 #:import Animation kivy.animation.Animation
 #:import MDChip kivymd.uix.chip.MDChip
 #:import MDChip kivymd.uix.chip.MDChipText
+#:import MDSlider kivymd.uix.slider.MDSlider
 #:import math math
 
 #V1.0.0
@@ -94,13 +95,7 @@ BoxLayout:
                         pos: 202, 100
                         size: 20, 10
           
-                # MDSlider:
-                #     pos: 230, 400
-                #     min: 0
-                #     max: 12
-                #     size_hint: None, None
-                #     height: 50
-                #     width: 500
+        
                 # # Rounded Button
                 # Button:
                 #     text: 'brr'
@@ -128,6 +123,12 @@ BoxLayout:
                 padding: 4,4,4,4
                 StatusChip:
                     color: 0, 0, 0, 1
+                    chip_text: "Wifi"
+                    failed_color: 0.5, 0.5, 0.5, 1
+                    failed: len(app.ssid) == 0
+                    active: False
+                StatusChip:
+                    color: 0, 0, 0, 1
                     chip_text: "BM3"
                     failed: not app.BM3Connected
                     active: app.BM3Connecting
@@ -138,9 +139,15 @@ BoxLayout:
                     # active: True
                 StatusChip:
                     color: 0, 0, 0, 1
-                    chip_text: "READY FOR LAUNCH"
-                    failed: True
-         
+                    chip_text: "LETS GO"
+                    failed: not app.LETS_FUCKING_GO
+                # MDSlider:
+                #     pos: 10, 10
+                #     min: 0
+                #     max: 12
+                #     size_hint: None, None
+                #     height: 50
+                #     width: 500
             
         InfoScreen:
             name: 'info'

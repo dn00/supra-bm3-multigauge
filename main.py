@@ -353,8 +353,8 @@ class Car:
         Generic_inc = 1
 class sys:
     version = GLOBAL_VERSION
-    ip = "No IP address found..."
-    ssid = "No SSID found..."
+    ip = ""
+    ssid = ""
     CPUTemp = 0
     CPUVolts = 0
     get_system_info = False
@@ -363,6 +363,7 @@ class sys:
     shutdownflag = 0
     TempUnit = "F"
     SpeedUnit = "MPH"
+    NetworkConnected = False
 
     def setbrightness(self, value):
         self.brightness = value
@@ -538,6 +539,7 @@ class StatusChip(MDChip):
     chip_text = StringProperty("")
     active = BooleanProperty(False)
     failed = BooleanProperty(False)  # Add a failed attribute 
+    failed_color = ListProperty([1, 0, 0, 1])  # Default to red
     def __init__(self, **kwargs):
         super(StatusChip, self).__init__(**kwargs)
         self.label = MDChipText(
@@ -615,12 +617,11 @@ class StatusChip(MDChip):
 
     def show_failed_state(self):
         """
-        Show the failed state (red) without pulsing.
+        Show the failed state using the custom failed color without pulsing.
         """
         self.stop_pulsing()
-        self.line_color = [1, 0, 0, 1]  # Set line color to red
-        self.label.text_color = [1, 0, 0, 1]  # Set text color to red
-
+        self.line_color = self.failed_color  # Set line color to custom failed color
+        self.label.text_color = self.failed_color  # Set text color to custom failed color
     def revert_to_default_state(self):
         """
         Revert to the default visual state.
@@ -698,10 +699,12 @@ class MainApp(MDApp):
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
     ipAddress = StringProperty()
+    ssid = StringProperty()
     WifiNetwork = StringProperty()
     CPUTemp = StringProperty()
     CPUVoltage = StringProperty()
     shutdownFlag = NumericProperty()
+    NetworkConnected = BooleanProperty()
     VIN = StringProperty()
 
     # Vehicle
@@ -725,9 +728,13 @@ class MainApp(MDApp):
     BM3Connecting = BooleanProperty(False)
     BM3Connected = BooleanProperty(False)
     
+    LETS_FUCKING_GO = BooleanProperty(False)
+    
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
+        self.NetworkConnected = sys.NetworkConnected
         self.ipAddress = sys.ip
+        self.ssid = sys.ssid
         if sys.get_system_info == True:
             self.get_IP()
     
@@ -749,6 +756,8 @@ class MainApp(MDApp):
         self.AFR = float(bm3.get_car_data(Car.Data.AFR))
         self.OilTemp = Car.Data.OilTemp.value
         self.VIN = Car.Data.VIN
+        
+        self.LETS_FUCKING_GO = self.OilTemp > 200 and self.CoolantTemp > 200 and 7 <= self.BM3EthanolPercent <= 50 and self.IntakeAirTemp <= 180
 
         if DEVELOPER_MODE == 1:
         # increase up and down coolant temp
@@ -778,15 +787,17 @@ class MainApp(MDApp):
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.connect(("8.8.8.8", 80))
+                sys.NetworkConnected = True
                 sys.ip = s.getsockname()[0]
             except:
-                sys.ip = "No IP address found..."
+                sys.NetworkConnected = False
+                sys.ip = ""
                 print("Could not get IP")
             try:
                 ssidstr = str(subprocess.check_output("iwgetid -r", shell=True))
                 sys.ssid = ssidstr[2:-3]
             except:
-                sys.ssid = "No SSID found..."
+                sys.ssid = ""
                 print("Could not get SSID")
 
         self.ipAddress = sys.ip
