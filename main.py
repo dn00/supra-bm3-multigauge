@@ -38,6 +38,9 @@ Config.set('graphics', 'width', '480')
 Config.set('graphics', 'height', '800')
 Config.set('graphics', 'show_cursor', 0)
 from kivy.core.window import Window
+Window.show_cursor = False
+
+from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.image import Image
@@ -717,6 +720,34 @@ class BottomBar(BoxLayout):
             child.height = (self.height) - (top_padding + bottom_padding)
             child.width = (self.width) - (left_padding + right_padding)
             
+class CustomDropdown(BoxLayout):
+    menu_items = ListProperty()
+    default_text = StringProperty("Select an item")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.menu = None
+
+    def on_menu_items(self, instance, value):
+        # Create the dropdown menu when menu items are set
+        self.menu = MDDropdownMenu(
+            caller=self.ids.drop_item,
+            items=self.menu_items,
+            width_mult=4,
+            position="center",
+        )
+
+    def show_menu(self):
+        # Bind the on_release method of each menu item to the set_item method
+        for item in self.menu.items:
+            item["on_release"] = lambda x=item["text"]: self.set_item(x)
+        self.menu.open()
+
+    def set_item(self, text_item):
+        # Set the text of the drop-down item and close the menu
+        self.ids.drop_item.set_item(text_item)
+        self.menu.dismiss()
+
 BM3().start()
 BM3().update_thread()
 

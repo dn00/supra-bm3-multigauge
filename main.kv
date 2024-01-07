@@ -157,7 +157,20 @@ BoxLayout:
                     hint_radius: [6, 0, 6, 0]
                     width: 260
                     track_color_active: "red"
-    
+                CustomDropdown:
+                    pos_hint_y: 2
+                    size: 10, 20  # Explicit size for debugging
+                    text: 'Item'
+                    text_color: 0, 0, 0, 1  # Red color, for instance
+                    padding: 6,6,6,6
+
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 1, 0.3  # Semi-transparent green for debugging
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+            
               
                             
             
