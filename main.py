@@ -25,6 +25,7 @@ from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, Rectangle
 from kivymd.uix.chip import MDChip, MDChipText
+from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
 GLOBAL_VERSION = "V0.0.1"
 
@@ -35,6 +36,7 @@ STOMP_URI = 'localhost'
 from kivy.config import Config
 Config.set('graphics', 'width', '480')
 Config.set('graphics', 'height', '800')
+Config.set('graphics', 'show_cursor', 0)
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -647,7 +649,7 @@ class StatusBar(BoxLayout):
         self.size_hint_y = None
         self.height = 30  # Set the height of the status bar
         self.bind(height=self.update_children_height)
-        self.spacing = 3 # Space between children
+        self.spacing = 8 # Space between children
         with self.canvas.before:
             Color(rgba=self.bg_color)  # Use the background color
             self.rect = Rectangle(size=self.size, pos=self.pos)
@@ -678,7 +680,43 @@ class StatusBar(BoxLayout):
     def on_size(self, *args):
         # Ensure the width of the status bar always matches the window width
         self.width = Window.width
+        
+class BottomBar(BoxLayout):
+    bg_color = ListProperty([0, 0, 0, 1])  # Default to black background
 
+    def __init__(self, **kwargs):
+        super(BottomBar, self).__init__(**kwargs)
+        self.orientation = 'horizontal'  # Arrange children from left to right
+        self.size_hint_y = None
+        self.bind(height=self.update_children_height)
+        self.pos_hint: {"bottom": .99}  # This positions it at the top of the FloatLayout
+        self.spacing = 8 # Space between children
+        with self.canvas.before:
+            Color(rgba=self.bg_color)  # Use the background color
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+
+        # Update the rectangle size and position when the widget size changes
+        self.bind(size=self.update_rect, pos=self.update_rect)
+
+    def update_rect(self, *args):
+        self.rect.size = self.size
+        self.rect.pos = self.pos
+
+    def on_size(self, *args):
+        # Ensure the width of the status bar always matches the window width
+        self.width = Window.width
+        
+    def update_children_height(self, *args):
+        # Assuming padding is a list [left, top, right, bottom]
+        top_padding = self.padding[1]
+        bottom_padding = self.padding[3]
+        left_padding = self.padding[0]
+        right_padding = self.padding[2]
+        for child in self.children:
+            # Subtract the top and bottom padding from the height
+            child.height = (self.height) - (top_padding + bottom_padding)
+            child.width = (self.width) - (left_padding + right_padding)
+            
 BM3().start()
 BM3().update_thread()
 
@@ -801,7 +839,9 @@ class MainApp(MDApp):
 
         self.ipAddress = sys.ip
         self.WifiNetwork = sys.ssid
-      
+        
+
+            
 if __name__ =='__main__':
     MainApp().run()
     

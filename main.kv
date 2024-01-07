@@ -3,6 +3,7 @@
 #:import MDChip kivymd.uix.chip.MDChip
 #:import MDChip kivymd.uix.chip.MDChipText
 #:import MDSlider kivymd.uix.slider.MDSlider
+#:import MDDropDownItem kivymd.uix.dropdownitem.MDDropDownItem
 #:import math math
 
 #V1.0.0
@@ -116,38 +117,49 @@ BoxLayout:
                 #     on_press: root.manager.current = 'gauge2'
                   
             StatusBar:
+                orientation: 'horizontal'  # or 'vertical'
                 size_hint_y: None
                 height:32
-                width: 800
+                width: 480
                 pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
                 padding: 6,6,6,6
                 StatusChip:
+                    size_hint_x: None
                     color: 0, 0, 0, 1
                     chip_text: "Wifi"
                     failed_color: 0.5, 0.5, 0.5, 1
                     failed: len(app.ssid) == 0
                     active: False
                 StatusChip:
+                    size_hint_x: None
                     color: 0, 0, 0, 1
                     chip_text: "BM3"
                     failed: not app.BM3Connected
                     active: app.BM3Connecting
                 StatusChip:
+                    size_hint_x: None
                     color: 0, 0, 0, 1
                     chip_text: "ETH"
                     failed: not app.BM3Connected or not 7 <= app.BM3EthanolPercent <=50
                     # active: True
                 StatusChip:
+                    size_hint_x: None
                     color: 0, 0, 0, 1
                     chip_text: "LETS GO"
                     failed: not app.LETS_FUCKING_GO
-                # MDSlider:
-                #     pos: 10, 10
-                #     min: 0
-                #     max: 12
-                #     size_hint: None, None
-                #     height: 50
-                #     width: 500
+            BottomBar:
+                width: 480
+                height: 80
+                MDSlider:
+                    pos: 10, 10
+                    min: 0
+                    max: 12
+                    hint_radius: [6, 0, 6, 0]
+                    width: 260
+                    track_color_active: "red"
+    
+              
+                            
             
         InfoScreen:
             name: 'info'
