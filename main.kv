@@ -49,8 +49,8 @@ BoxLayout:
                     gauge_image: "data/gauges/supra_turbo.png"
                     gauge_bars: str(app.OilTemp_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: 0, 480
-                    gauge_size: 320
+                    pos: -20, 480
+                    gauge_size: 350
  
                 RelativeLayout:
                     pos: 2,-15
@@ -117,10 +117,10 @@ BoxLayout:
                   
             StatusBar:
                 size_hint_y: None
-                height:32
+                height:38
                 width: 800
                 pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
-                padding: 4,4,4,4
+                padding: 6,6,6,6
                 StatusChip:
                     color: 0, 0, 0, 1
                     chip_text: "Wifi"

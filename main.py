@@ -493,10 +493,10 @@ class CustomGauge(FloatLayout):
         self.add_widget(self.label)
         if (self.label_unit_text != ''):
             self.label_unit = Label(text=self.label_unit_text,
-                            font_size=self.gauge_size * 0.1,
+                            font_size=self.gauge_size * 0.05,
                             halign='center',
                             valign='middle',
-                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .2))),
+                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .25))),
                             size=(self.width, self.height)
                             )
             
@@ -554,10 +554,10 @@ class StatusChip(MDChip):
         self.md_bg_color = [0,0, 0, 1]  # Fully transparent background
         self.line_color = [.16, .67, .27, 1]  # Green line color
         self.size_hint = (None, None)
-        self.width = dp(28)  # Starting width, adjust as needed
+        self.width = dp(42)  # Starting width, adjust as needed
         self.line_width = 1
         self.check = False  # Set to False if you don't want the check icon
-        self.padding = [dp(6), 0, dp(6), 0]  # Horizontal padding
+        self.padding = [dp(12), 0, dp(12), 0]  # Horizontal padding
 
     def on_chip_text(self, instance, value):
         self.label.text = value
