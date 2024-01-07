@@ -748,6 +748,35 @@ class CustomDropdown(BoxLayout):
         self.ids.drop_item.set_item(text_item)
         self.menu.dismiss()
 
+
+class Segment(Widget):
+    color = ListProperty([0.1, 0.5, 0.7, 1])  # Default color of a segment
+
+class VerticalSegmentedProgressBar(BoxLayout):
+    value = NumericProperty(0)  # The current value of the progress bar
+    segments = NumericProperty(16)  # Total number of segments
+    filled_color = ListProperty([0, 1, 0, 1])  # Default filled segment color (green)
+    empty_color = ListProperty([0.3, 0.3, 0.3, 1])  # Default empty segment color (grey)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.update_segments()
+        self.bind(filled_color=self.on_filled_color)
+        
+    def on_filled_color(self, instance, value):
+        self.filled_color = value
+        self.update_segments()  # Update the segments when filled_color changes
+
+    def update_segments(self):
+        self.clear_widgets()  # Remove existing segments
+        filled = int(self.segments * self.value / 100)  # Calculate how many segments should be filled
+
+        # Create the segments from bottom to top
+        for i in range(self.segments):
+            if self.segments - i <= filled:
+                self.add_widget(Segment(color=self.filled_color))  # Use filled_color
+            else:
+                self.add_widget(Segment(color=self.empty_color))  # Use empty_color
 BM3().start()
 BM3().update_thread()
 
@@ -756,6 +785,10 @@ class MainApp(MDApp):
     theme_cls = ThemeManager()
     theme_cls.theme_style = "Dark"
     theme_cls.primary_palette = "Red"
+    
+    GasPedalPosition = NumericProperty(0)
+    BrakePedalPosition = NumericProperty(0)
+    
     def build(self):
         # self.bm3 = BM3()
         # BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=BM3().connect)
@@ -763,7 +796,14 @@ class MainApp(MDApp):
         Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
-        
+        if DEVELOPER_MODE == 1:
+            def update_bar(dt):
+                self.GasPedalPosition += 6
+                if self.GasPedalPosition > 100:
+                    self.GasPedalPosition = 0
+
+            Clock.schedule_interval(update_bar, 0.1)          
+          
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
     ipAddress = StringProperty()
@@ -776,6 +816,7 @@ class MainApp(MDApp):
     VIN = StringProperty()
 
     # Vehicle
+
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
     CoolantTemp = NumericProperty(0)

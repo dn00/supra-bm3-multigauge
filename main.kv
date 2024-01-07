@@ -12,6 +12,20 @@
 #:set GaugeFont "data/fonts/Eurostile LT Std Medium.ttf"
 #:set ButtonFont "data/fonts/Eurostile LT Std Extended 2.ttf"
 
+<Segment>:
+    canvas:
+        Color:
+            rgba: self.color
+        Rectangle:
+            # Subtracting a margin value from the size and adjusting the position
+            pos: (self.x + dp(2), self.y + dp(2))  
+            size: (self.width - dp(2), self.height - dp(2))  # 4dp margin
+
+<VerticalSegmentedProgressBar>:
+    orientation: 'vertical'
+    spacing: dp(2)  # Spacing between segments
+    on_value: self.update_segments()
+
 BoxLayout:
     orientation: 'vertical'
     ScreenManager:
@@ -26,6 +40,21 @@ BoxLayout:
                         size: self.size
                         pos: self.pos
           
+     
+                VerticalSegmentedProgressBar:
+                    id: gas
+                    value: app.GasPedalPosition
+                    size_hint: (None, None)
+                    filled_color: 0.4, 0.8, 0.4, 1  # Trendy Green for gas pedal
+                    size: (dp(30), dp(150))
+                    pos_hint: {'center_x': 0.1, 'center_y': 0.75}
+                VerticalSegmentedProgressBar:
+                    id: brake
+                    value: 60  # Initial value set to 60%
+                    size_hint: (None, None)
+                    filled_color: 0.8, 0.2, 0.2, 1  # Trendy Red for brake pedal
+                    size: (dp(30), dp(150))
+                    pos_hint: {'center_x': 0.9, 'center_y': 0.75}
                 CustomGauge:
                     label_text: str(app.Ign1Timing) + '°'
                     label_font_size: 24
