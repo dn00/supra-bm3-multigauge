@@ -31,8 +31,8 @@ BoxLayout:
                     gauge_image: "data/gauges/S2K_Timing.png"
                     gauge_bars: str(app.Ign1Timing_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: 0, 105
-                    gauge_size: 76
+                    pos: 180, 330
+                    gauge_size: 240
                 CustomGauge:
                     label_text: str(app.AFR)
                     label_font_size: 24
@@ -40,8 +40,8 @@ BoxLayout:
                     gauge_image: "data/gauges/S2K_Timing.png"
                     gauge_bars: str(app.AFR_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: 126, 105
-                    gauge_size: 76
+                    pos: -60, 330
+                    gauge_size: 240
                 CustomGauge:
                     label_text: str(app.OilTemp)
                     label_font_size: 24
@@ -49,50 +49,50 @@ BoxLayout:
                     gauge_image: "data/gauges/supra_turbo.png"
                     gauge_bars: str(app.OilTemp_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: 38, 170
-                    gauge_size: 110
+                    pos: 0, 480
+                    gauge_size: 320
  
                 RelativeLayout:
                     pos: 2,-15
                     ReadoutGauge:
                         label_text: "Eth"
-                        label_unit_text: "%   " 
-                        label_font_size: 18
+                        label_unit_text: " %   " 
+                        label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
-                        value_size: 14
+                        value_size: 24
                         value: str(app.BM3EthanolPercent)
-                        pos: 22, 100
+                        pos: 42, 300
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "IAT"
                         label_unit_text: "F   " 
-                        label_font_size: 18
+                        label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
-                        value_size: 14
+                        value_size: 24
                         value: str(app.IntakeAirTemp)
-                        pos: 82, 100
+                        pos: 306, 300
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "Oil-T"
                         label_unit_text: "F   " 
-                        label_font_size: 18
+                        label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
-                        value_size: 14
+                        value_size: 24
                         value: "0"
-                        pos: 142, 100
+                        pos: 218, 300
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "CL-T"
                         label_unit_text: "F   " 
-                        label_font_size: 18
+                        label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
-                        value_size: 14
+                        value_size: 24
                         value: str(app.CoolantTemp)
-                        pos: 202, 100
+                        pos: 130, 300
                         size: 20, 10
           
         
@@ -117,7 +117,7 @@ BoxLayout:
                   
             StatusBar:
                 size_hint_y: None
-                height:18
+                height:32
                 width: 800
                 pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
                 padding: 4,4,4,4

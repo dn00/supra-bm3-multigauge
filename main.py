@@ -33,14 +33,14 @@ STOMP_URI = 'localhost'
 
 
 from kivy.config import Config
-Config.set('graphics', 'width', '240')
-Config.set('graphics', 'height', '320')
+Config.set('graphics', 'width', '480')
+Config.set('graphics', 'height', '800')
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.properties import ObjectProperty
-Window.size = (240, 320)
+Window.size = (480, 800)
 
 heart_beat = (10000, 10000)
 
@@ -400,7 +400,7 @@ class sys:
 class ReadoutGauge(FloatLayout):
     label_text = StringProperty()
     label_unit_text = StringProperty()
-    label_font_size = NumericProperty(24)
+    label_font_size = NumericProperty(28)
     # pos = ListProperty()
     size = ListProperty()
     value = StringProperty("0")
@@ -429,7 +429,7 @@ class ReadoutGauge(FloatLayout):
         self.unit_text = Label(text=self.label_unit_text,
                            font_size=self.label_font_size * 0.5,
                            font_name=self.label_font_name,
-                              pos=((-Window.size[0] / 2) + (self.label.width) + self.pos[0] + (len(self.label.text) * 2), (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
+                              pos=((-Window.size[0] / 2) + (self.label.width) + self.pos[0] + (len(self.label.text) * 2) + 16, (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
                           size=(self.size[0], self.size[1]))
         self.add_widget(self.readout)
         self.add_widget(self.unit_text)
@@ -462,7 +462,7 @@ class CustomGauge(FloatLayout):
     def on_kv_post(self, base_widget):
         # Create the label with initial position
         
-        self.height = self.gauge_size 
+        self.height = self.gauge_size * 0.8
         self.width = self.gauge_size * 1.5
 
         # Create the gauge image
@@ -470,7 +470,7 @@ class CustomGauge(FloatLayout):
                            opacity=1,
                            size_hint=(None, None),
                            pos=(self.pos[0], self.pos[1] + (self.pos[1] - self.height) / 2),
-                           size=(self.width, self.height))
+                           size=(self.width, min(self.height, self.gauge_size *0.5)))
         
         self.add_widget(self.gauge)
 
@@ -479,7 +479,7 @@ class CustomGauge(FloatLayout):
                                 source=self.gauge_bars,
                                 size_hint=(None, None),
                                 pos=(self.pos[0],  self.pos[1] + (self.pos[1] - self.height) / 2),
-                                size=(self.width, self.height))
+                                size=(self.width, min(self.height, self.gauge_size *0.5)))
         
         self.add_widget(self.bars_image)
         
@@ -487,17 +487,16 @@ class CustomGauge(FloatLayout):
                            font_size=self.gauge_size * 0.25,
                            halign='center',
                            valign='middle',
-                          pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2),  ((-Window.size[1] / 2) + self.gauge.pos[1] - (self.height * .05))),
+                          pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2),  ((-Window.size[1] / 2) +  self.gauge.pos[1] - (self.height * .15))),
                           size=(self.width, self.height)
                            )
         self.add_widget(self.label)
         if (self.label_unit_text != ''):
-            print('sadasdad')
             self.label_unit = Label(text=self.label_unit_text,
                             font_size=self.gauge_size * 0.1,
                             halign='center',
                             valign='middle',
-                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .4))),
+                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .5))),
                             size=(self.width, self.height)
                             )
             
@@ -555,7 +554,7 @@ class StatusChip(MDChip):
         self.md_bg_color = [0,0, 0, 1]  # Fully transparent background
         self.line_color = [.16, .67, .27, 1]  # Green line color
         self.size_hint = (None, None)
-        self.width = dp(20)  # Starting width, adjust as needed
+        self.width = dp(28)  # Starting width, adjust as needed
         self.line_width = 1
         self.check = False  # Set to False if you don't want the check icon
         self.padding = [dp(6), 0, dp(6), 0]  # Horizontal padding
