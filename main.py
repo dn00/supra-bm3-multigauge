@@ -496,7 +496,7 @@ class CustomGauge(FloatLayout):
                             font_size=self.gauge_size * 0.1,
                             halign='center',
                             valign='middle',
-                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .5))),
+                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .2))),
                             size=(self.width, self.height)
                             )
             
@@ -717,12 +717,12 @@ class MainApp(MDApp):
     AFR = NumericProperty(0)
     
     # Gauge Bar Images
-    OilTemp_Image = StringProperty()
-    Boost_image = StringProperty()
-    CoolantTemp_Image = StringProperty()
-    IntakeTemp_Image = StringProperty()
-    Ign1Timing_Image = StringProperty()
-    AFR_Image = StringProperty()
+    OilTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
+    Boost_image = StringProperty('data/gauges/normal/s2k_0.png')
+    CoolantTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
+    IntakeTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
+    Ign1Timing_Image = StringProperty('data/gauges/normal/s2k_0.png')
+    AFR_Image = StringProperty('data/gauges/normal/s2k_0.png')
     
     BM3Connecting = BooleanProperty(False)
     BM3Connected = BooleanProperty(False)
