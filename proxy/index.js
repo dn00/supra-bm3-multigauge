@@ -151,8 +151,8 @@ wss.on('connection', function connection(ws) {
       
       else if (command === 'SEND' && stompClient) {
         // For other frames like SEND, ACK, etc., forward them to the external STOMP server
-        console.log('frame.destination:', parsedFrame.destination)
-        console.log('frame.headers:', parsedFrame.headers)
+        // console.log('frame.destination:', parsedFrame.destination)
+        // console.log('frame.headers:', parsedFrame.headers)
         // console.log('frame.body:', parsedFrame.body)
         // get header
         // parse frame string
@@ -165,17 +165,17 @@ wss.on('connection', function connection(ws) {
         
         if (TEST && parsedFrame.destination === '/app/startdash') {
           // send /queue/dashdata for 2 seconds every .1 seconds
-          console.log("TESTING")
-          const test_interval = setInterval(() => {
-            const messageFrame = constructStompFrame('MESSAGE', {
-              destination: '/queue/dashdata',
-            }, testPayload);
-            ws.send(messageFrame);
-          }, 200);
+          console.log("SENT Dash")
+          // const test_interval = setInterval(() => {
+          //   const messageFrame = constructStompFrame('MESSAGE', {
+          //     destination: '/queue/dashdata',
+          //   }, testPayload);
+          //   ws.send(messageFrame);
+          // }, 200);
 
-          setTimeout(() => {
-            clearInterval(test_interval);
-          }, 2000);
+          // setTimeout(() => {
+          //   clearInterval(test_interval);
+          // }, 2000);
 
         }
       } else if (command === 'NEXT' && stompClient) {
