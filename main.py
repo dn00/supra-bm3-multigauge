@@ -561,7 +561,7 @@ class StatusChip(MDChip):
 
     def on_chip_text(self, instance, value):
         self.label.text = value
-        self.label.font_size = dp(12)
+        self.label.font_size = dp(18)
         
 
 
