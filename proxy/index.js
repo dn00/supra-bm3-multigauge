@@ -10,7 +10,7 @@ const ENDPOINT = 'http://localhost:8080/ws';
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server: server, path: "/ws" });
-const testPayload = '"0.000","5814+0","5801+0.0","4205+0.0","4536+14.7","4AB0+0.0","5805+59","5819+0","5881+0","56C1+-14","56D7+113","580F+63","580E+0.0","4A49+-0.1","4A4A+-0.1","4A4C+-0.1","4A4D+-0.1","4A4E+-0.1","4A4F+-0.1","4A36+0","58F3+72","5807+1.00","582C+10.29","5889+19.11","5804+0.0","5813+63.0","5818+0.0","5812+0.0","580B+0.0","5806+1.00","4600+23","580D+0","4AAB+50","6001CFF8+12.18","60001C0C+-1.339","6000251C+1.000","60002530+1.000","60003648+0.0","60003B56+0.000","60003B58+0.000","60003B5A+0.000","60003B5C+0.000","60003B5E+0.000","60003B60+0.000","6000344C+0.0000","60001CA8+184.20","600031D4+184.2000","50004DC8+0","600017B8+0.00","600017B4+0.00","600017BC+0.00","60003006+0.00","60002E4E+0.000","60002CC4+-38.8","600024DE+3.99993","60038090+0","6003814A+0.00","60038149+0.00","6003814B+0.63","60038096+38","60038140+38","60038141+77","60038147+0","60038082+0.00","6003808E+0.00","60038084+0.00","60038006+1"'
+const testPayload = '"22.987","5822+73","5814+99","5801+0.1","4205+23.9239329","4536+14.8","4AB0+0.0","5805+58","5819+0","5881+0","56C1+-14","56D7+129","580F+61","580E+0.0","4A49+-0.1","4A4A+-0.1","4A4C+-0.1","4A4D+-0.1","4A4E+-0.1","4A4F+-0.1","4A36+0","58F3+72","5807+1.00","582C+10.29","5889+19.11","5804+0.0","5813+63.0","5818+0.0","5812+0.0","580B+0.0","5806+1.00","4600+99","580D+0","4AAB+50","6001CFF8+11.90","60001C0C+-1.349","6000251C+1.000","60002530+1.000","60003648+0.0","60003B56+0.000","60003B58+0.000","60003B5A+0.000","60003B5C+0.000","60003B5E+0.000","60003B60+0.000","6000344C+0.0000","60001CA8+184.84","600031D4+184.8400","50004DC8+0","600017B8+0.00","600017B4+0.00","600017BC+0.00","60003006+0.00","60002E4E+0.000","60002CC4+-35.3","600024DE+3.99993","60038090+0","6003814A+0.00","60038149+0.00","6003814B+0.00","60038096+0","60038140+0","60038141+-40","60038147+0","60038082+0.00","6003808E+0.00","60038084+0.00","60038006+1"'
 class StompFrame {
   constructor(command, destination, headers, body) {
     this.destination = destination;
@@ -163,21 +163,21 @@ wss.on('connection', function connection(ws) {
         
         stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body)
         
-        if (TEST && parsedFrame.destination === '/app/startdash') {
-          // send /queue/dashdata for 2 seconds every .1 seconds
-          console.log("SENT Dash")
-          // const test_interval = setInterval(() => {
-          //   const messageFrame = constructStompFrame('MESSAGE', {
-          //     destination: '/queue/dashdata',
-          //   }, testPayload);
-          //   ws.send(messageFrame);
-          // }, 200);
+        // if (TEST && parsedFrame.destination === '/app/startdash') {
+        //   // send /queue/dashdata for 2 seconds every .1 seconds
+        //   console.log("SENT Dash")
+        //   const test_interval = setInterval(() => {
+        //     const messageFrame = constructStompFrame('MESSAGE', {
+        //       destination: '/queue/dashdata',
+        //     }, testPayload);
+        //     ws.send(messageFrame);
+        //   }, 200);
 
-          // setTimeout(() => {
-          //   clearInterval(test_interval);
-          // }, 2000);
+        //   setTimeout(() => {
+        //     clearInterval(test_interval);
+        //   }, 2000);
 
-        }
+        // }
       } else if (command === 'NEXT' && stompClient) {
         console.log('CONTINUE frame received from Python app. Ignoring it.')
       
