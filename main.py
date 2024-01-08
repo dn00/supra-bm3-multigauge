@@ -271,9 +271,9 @@ class BM3:
         
         while True:
             # run every 5 seconds
-            
-            self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
-            time.sleep(5)
+            if self.Connected:
+                self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+                time.sleep(5)
 
         # backoff_time = 0.1  # Initial backoff time
         # max_backoff_time = 3 # Maximum backoff time
