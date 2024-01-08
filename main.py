@@ -961,12 +961,11 @@ class MainApp(MDApp):
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
         self.AFR = float(bm3.get_car_data(Car.Data.AFR))
-        self.OilTemp = Car.Data.OilTemp.value
-        self.STFT = Car.Data.STFT.value
-        self.LTFT = Car.Data.LTFT.value
-        self.AcceleratorPosition = Car.Data.AcceleratorPosition.value
-        
-        # self.ThrottleAngle = Car.Data.ThrottleAngle.value
+        self.OilTemp = bm3.get_car_data(Car.Data.OilTemp)
+        self.STFT = bm3.get_car_data(Car.Data.STFT)
+        self.LTFT = bm3.get_car_data(Car.Data.LTFT)
+        self.AcceleratorPosition = bm3.get_car_data(Car.Data.AcceleratorPosition)
+        self.ThrottleAngle = bm3.get_car_data(Car.Data.ThrottleAngle)
         self.VIN = Car.Data.VIN
         
         self.LETS_FUCKING_GO = self.OilTemp > 200 and self.CoolantTemp > 200 and 7 <= self.BM3EthanolPercent <= 50 and self.IntakeAirTemp <= 180
