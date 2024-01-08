@@ -265,12 +265,12 @@ class BM3:
     def send(self, message):
         pass
         # self.Connection.send(body=message, destination='/topic/bm3')
-        
-    
+
     def request_car_data(self):
+        
         backoff_time = 0.1  # Initial backoff time
         max_backoff_time = 3 # Maximum backoff time
-        pause_threshold = 0.3  # Adjust this value based on the server's response time
+        pause_threshold = 0.1  # Adjust this value based on the server's response time
         while True:
             current_time = time.time()
             time_since_last_data = current_time - self.last_car_data_received
@@ -292,7 +292,7 @@ class BM3:
                         except Exception as e:
                             # stop the thread if the connection is lost
                             # break
-                            time.sleep(2)
+                            time.sleep(.1)
             else:
                 backoff_time = 0.1
                 time.sleep(0.1)  # Adjust the sleep time as needed.
