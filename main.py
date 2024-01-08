@@ -267,36 +267,43 @@ class BM3:
         # self.Connection.send(body=message, destination='/topic/bm3')
 
     def request_car_data(self):
+        self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
-        backoff_time = 0.1  # Initial backoff time
-        max_backoff_time = 3 # Maximum backoff time
-        pause_threshold = 0.1  # Adjust this value based on the server's response time
         while True:
-            current_time = time.time()
-            time_since_last_data = current_time - self.last_car_data_received
-            if self.Connected and time_since_last_data > pause_threshold:
-                with self.request_data_lock:
+            # run every 5 seconds
             
-                    if time.time() - self.last_car_data_received > pause_threshold:
-                        try:
-                            self.count = 0
-                            # self.Connection.subscribe(destination='/queue/dashdata' , id=4)
-                            # self.Connection.subscribe(destination='/queue/dashstatus', id=5)
-                            self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
-                            # self.Connection.send(destination='/app/ram', headers=jwt_headers, body=json.dumps(big_payload))
+            self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+            time.sleep(5)
 
-                            self.last_car_data_received = time.time()
-                            time.sleep(backoff_time) 
+        # backoff_time = 0.1  # Initial backoff time
+        # max_backoff_time = 3 # Maximum backoff time
+        # pause_threshold = 0.1  # Adjust this value based on the server's response time
+        # while True:
+        #     current_time = time.time()
+        #     time_since_last_data = current_time - self.last_car_data_received
+        #     if self.Connected and time_since_last_data > pause_threshold:
+        #         with self.request_data_lock:
+            
+        #             if time.time() - self.last_car_data_received > pause_threshold:
+        #                 try:
+        #                     self.count = 0
+        #                     # self.Connection.subscribe(destination='/queue/dashdata' , id=4)
+        #                     # self.Connection.subscribe(destination='/queue/dashstatus', id=5)
+        #                     self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+        #                     # self.Connection.send(destination='/app/ram', headers=jwt_headers, body=json.dumps(big_payload))
+
+        #                     self.last_car_data_received = time.time()
+        #                     time.sleep(backoff_time) 
                         
-                            backoff_time = min(backoff_time * 3, max_backoff_time)
-                        except Exception as e:
-                            # stop the thread if the connection is lost
-                            # break
-                            time.sleep(.1)
-            else:
-                backoff_time = 0.1
-                time.sleep(0.1)  # Adjust the sleep time as needed.
-        pass
+        #                     backoff_time = min(backoff_time * 3, max_backoff_time)
+        #                 except Exception as e:
+        #                     # stop the thread if the connection is lost
+        #                     # break
+        #                     time.sleep(.1)
+        #     else:
+        #         backoff_time = 0.1
+        #         time.sleep(0.1)  # Adjust the sleep time as needed.
+        # pass
 
     def send_map_switch(self, map: int):
         if not map == 0 or not map == 3:
