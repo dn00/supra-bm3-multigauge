@@ -40,21 +40,20 @@ BoxLayout:
                         size: self.size
                         pos: self.pos
           
-     
                 VerticalSegmentedProgressBar:
                     id: gas
-                    value: app.GasPedalPosition
+                    value: app.AcceleratorPosition
                     size_hint: (None, None)
                     filled_color: 0.4, 0.8, 0.4, 1  # Trendy Green for gas pedal
                     size: (dp(30), dp(150))
-                    pos_hint: {'center_x': 0.1, 'center_y': 0.75}
+                    pos_hint: {'center_x': 0.12, 'center_y': 0.75}
                 VerticalSegmentedProgressBar:
-                    id: brake
-                    value: 60  # Initial value set to 60%
+                    id: throttle_angle
+                    value: app.ThrottleAngle
                     size_hint: (None, None)
-                    filled_color: 0.8, 0.2, 0.2, 1  # Trendy Red for brake pedal
+                    filled_color: 0.2, 0.2, 0.9, 1  # Trendy Red for brake pedal
                     size: (dp(30), dp(150))
-                    pos_hint: {'center_x': 0.9, 'center_y': 0.75}
+                    pos_hint: {'center_x': 0.88, 'center_y': 0.75}
                 CustomGauge:
                     label_text: str(app.Ign1Timing) + '°'
                     label_font_size: 24
@@ -67,17 +66,18 @@ BoxLayout:
                     label_text: str(app.AFR)
                     label_font_size: 24
                     label_unit_text: "AFR"
-                    gauge_image: "data/gauges/S2K_Timing.png"
+                    label_as_icon: True
+                    gauge_image: "data/gauges/S2KOutline_DoubleRed.png"
                     gauge_bars: str(app.AFR_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                     pos: -60, 330
                     gauge_size: 240
                 CustomGauge:
-                    label_text: str(app.OilTemp)
+                    label_text: str(app.Boost)
                     label_font_size: 24
                     label_unit_text: "psig"
                     gauge_image: "data/gauges/supra_turbo.png"
-                    gauge_bars: str(app.OilTemp_Image)
+                    gauge_bars: str(app.Boost_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                     pos: -20, 480
                     gauge_size: 350
@@ -86,7 +86,7 @@ BoxLayout:
                     pos: 2,-15
                     ReadoutGauge:
                         label_text: "Eth"
-                        label_unit_text: " %   " 
+                        label_unit_text: "%" 
                         label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
@@ -96,7 +96,7 @@ BoxLayout:
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "IAT"
-                        label_unit_text: "F   " 
+                        label_unit_text: "F" 
                         label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
@@ -106,17 +106,17 @@ BoxLayout:
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "Oil-T"
-                        label_unit_text: "F   " 
+                        label_unit_text: "F" 
                         label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
                         value_size: 24
-                        value: "0"
+                        value: str(app.OilTemp)
                         pos: 280, 300
                         size: 20, 10
                     ReadoutGauge:
                         label_text: "CL-T"
-                        label_unit_text: "F   " 
+                        label_unit_text: "F" 
                         label_font_size: 32
                         label_font_name: GaugeFont
                         value_font_name: GaugeFont
@@ -124,7 +124,26 @@ BoxLayout:
                         value: str(app.CoolantTemp)
                         pos: 170, 300
                         size: 20, 10
-          
+                    ReadoutGauge:
+                        label_text: "STFT"
+                        label_unit_text: "0-50" 
+                        label_font_size: 32
+                        label_font_name: GaugeFont
+                        value_font_name: GaugeFont
+                        value_size: 24
+                        value: str(app.STFT)
+                        pos: 180, 220
+                        size: 20, 10
+                    ReadoutGauge:
+                        label_text: "LTFT"
+                        label_unit_text: "0-50" 
+                        label_font_size: 32
+                        label_font_name: GaugeFont
+                        value_font_name: GaugeFont
+                        value_size: 24
+                        value: str(app.LTFT)
+                        pos: 60, 220
+                        size: 20, 10
         
                 # # Rounded Button
                 # Button:
@@ -145,63 +164,72 @@ BoxLayout:
                 #     pos: 120, 10
                 #     on_press: root.manager.current = 'gauge2'
                   
-            StatusBar:
-                orientation: 'horizontal'  # or 'vertical'
-                size_hint_y: None
-                height:32
-                width: 480
-                pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
-                padding: 6,6,6,6
-                StatusChip:
-                    size_hint_x: None
-                    color: 0, 0, 0, 1
-                    chip_text: "Wifi"
-                    failed_color: 0.5, 0.5, 0.5, 1
-                    failed: len(app.ssid) == 0
-                    active: False
-                StatusChip:
-                    size_hint_x: None
-                    color: 0, 0, 0, 1
-                    chip_text: "BM3"
-                    failed: not app.BM3Connected
-                    active: app.BM3Connecting
-                StatusChip:
-                    size_hint_x: None
-                    color: 0, 0, 0, 1
-                    chip_text: "ETH"
-                    failed: not app.BM3Connected or not 7 <= app.BM3EthanolPercent <=50
-                    # active: True
-                StatusChip:
-                    size_hint_x: None
-                    color: 0, 0, 0, 1
-                    chip_text: "LETS GO"
-                    failed: not app.LETS_FUCKING_GO
-            BottomBar:
-                width: 480
-                height: 80
-                MDSlider:
-                    pos: 10, 10
-                    min: 0
-                    max: 12
-                    hint_radius: [6, 0, 6, 0]
-                    width: 260
-                    track_color_active: "red"
-                CustomDropdown:
-                    pos_hint_y: 2
-                    size: 10, 20  # Explicit size for debugging
-                    text: 'Item'
-                    text_color: 0, 0, 0, 1  # Red color, for instance
+                StatusBar:
+                    orientation: 'horizontal'  # or 'vertical'
+                    size_hint_y: None
+                    height:32
+                    width: 480
+                    pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
                     padding: 6,6,6,6
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
+                        chip_text: "Wifi"
+                        failed_color: 0.5, 0.5, 0.5, 1
+                        failed: len(app.ssid) == 0
+                        active: False
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
+                        chip_text: "BM3"
+                        failed: not app.BM3Connected
+                        active: app.BM3Connecting
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
+                        chip_text: "ETH"
+                        failed: not app.BM3Connected or not 7 <= app.BM3EthanolPercent <=50
+                        # active: True
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
+                        chip_text: "LETS GO"
+                        failed: not app.LETS_FUCKING_GO
+                BottomBar:
+                    width: 480
+                    height: 100
+                    CustomSlider:
+                        id: "burble_slider"
+                        value: app.LiveAdjustBurbleAggValue
+                        step: 0.5
+                        # on_valueapp.dispatch_send_live_adjust_burble(*args)
+                        # pos: 10, 10
+                        # min: -1
+                        # max: 12
+                        # # hint_radius: [12, 0, 12, 0]
+                        # # width: 260
+                        # show_off: False
+                        # hint_bg_color: "red"
+                        # track_color_inactive: "grey"
+                        # color: "green"
+                        # thumb_color_active: "green"
+                        # thumb_color_inactive: "green"
+                    # CustomDropdown:
+                    #     pos_hint_y: 2
+                    #     size: 10, 20  # Explicit size for debugging
+                    #     text: 'Item'
+                    #     text_color: 0, 0, 0, 1  # Red color, for instance
+                    #     padding: 6,6,6,6
 
-                    canvas.before:
-                        Color:
-                            rgba: 0, 0, 1, 0.3  # Semi-transparent green for debugging
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-            
-              
-                            
+                    #     canvas.before:
+                    #         Color:
+                    #             rgba: 0, 0, 1, 0.3  # Semi-transparent green for debugging
+                    #         Rectangle:
+                    #             pos: self.pos
+                    #             size: self.size
+                
+                
+                                
             
         InfoScreen:
             name: 'info'

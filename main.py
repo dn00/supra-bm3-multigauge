@@ -27,6 +27,8 @@ from kivy.graphics import Color, Rectangle
 from kivymd.uix.chip import MDChip, MDChipText
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
+from kivymd.uix.slider import MDSlider
+import weakref
 GLOBAL_VERSION = "V0.0.1"
 
 DEVELOPER_MODE = 1           # set to 1 to disable all GPIO, temp probe, and obd stuff
@@ -193,6 +195,8 @@ class BM3:
         self.Connection.subscribe(destination='/user/queue/id', id=2)
         self.Connection.subscribe(destination='/user/queue/vin', id=7)
         self.Connection.subscribe(destination='/user/queue/ram', id=8)
+        self.Connection.subscribe(destination='/user/queue/mapsw', id=5)
+
 
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
@@ -258,7 +262,9 @@ class BM3:
         self.Connected = False
     
     def send(self, message):
-        self.Connection.send(body=message, destination='/topic/bm3')
+        pass
+        # self.Connection.send(body=message, destination='/topic/bm3')
+        
     
     def request_car_data(self):
         backoff_time = 0.1  # Initial backoff time
@@ -270,7 +276,6 @@ class BM3:
 
             if self.Connected and time_since_last_data > pause_threshold:
                 with self.request_data_lock:
-                    print('sending request')
                     if time.time() - self.last_car_data_received > pause_threshold:
                         try:
                             self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
@@ -285,6 +290,28 @@ class BM3:
             else:
                 backoff_time = 0.1
                 time.sleep(0.1)  # Adjust the sleep time as needed.
+
+    def send_map_switch(self, map: int):
+        if not map == 0 or not map == 3:
+            # Can't use map 1 or 2 any way
+            return
+        self.Connection.send(destination='/app/mapsw', body=json.dumps({"slot": str(map)}))
+        
+    def send_live_adjust_burble(self, value: float):
+        if not -1 <= value <= 12:
+            return
+                
+        payload = {
+            "enabled": True,
+            "agg": value,
+            "dur": 0
+        }
+        if 0 > value:
+            payload['agg'] = 0
+            payload['enabled'] = False
+
+        self.Connection.send(destination='/app/burble', body=json.dumps(payload))
+            
 
     def send_for_vin(self):
         # self.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
@@ -310,15 +337,19 @@ class BM3:
        
 class Car:
     class Data:
+        AcceleratorPosition = CarDiagData("5814", 0)
+        ThrottleAngle = CarDiagData("4600", 0)
         Boost = CarDiagData("4205", 0)
         RPM = CarDiagData("-1", 0)
         Speed = CarDiagData("-1", 0)
-        OilTemp = CarDiagData("-1", 0)
+        OilTemp = CarDiagData("5822", 0)
         CoolantTemp = CarDiagData("5805", 0)
         IntakeAirTemp = CarDiagData("580F", 0)
         BM3EthanolPercent = CarDiagData("60038096", 0)
         Ign1Timing = CarDiagData("580E", 0)
         AFR = CarDiagData("582C", 0)
+        STFT = CarDiagData("5806", 0)
+        LTFT = CarDiagData("5807", 0)
         VIN = ''
         
     class gauge:
@@ -329,7 +360,7 @@ class Car:
             IntakeTemp = "data/gauges/normal/s2k_"
 
         class persegment:
-            Boost_max = 25
+            Boost_max = 23
             OilTemp_max = 300
             CoolantTemp_max = 300
             IntakeTemp_max = 300
@@ -432,9 +463,9 @@ class ReadoutGauge(FloatLayout):
                                size=(self.size[0], self.size[1])
                             )
         self.unit_text = Label(text=self.label_unit_text,
-                           font_size=self.label_font_size * 0.5,
+                           font_size=self.label_font_size * 0.4,
                            font_name=self.label_font_name,
-                              pos=((-Window.size[0] / 2) + (self.label.width) + self.pos[0] + (len(self.label.text) * 2) + 16, (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
+                              pos=((-Window.size[0] / 2)  + self.pos[0] + (len(self.label.text) * 8) + (len(self.label_unit_text) * 5), (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
                           size=(self.size[0], self.size[1]))
         self.add_widget(self.readout)
         self.add_widget(self.unit_text)
@@ -455,6 +486,7 @@ class CustomGauge(FloatLayout):
     gauge_size = NumericProperty(60)
     height = NumericProperty(0)
     width = NumericProperty(0)
+    label_as_icon = BooleanProperty(False)
     label = None
     gauge = None
     bars_image = None
@@ -497,11 +529,16 @@ class CustomGauge(FloatLayout):
                            )
         self.add_widget(self.label)
         if (self.label_unit_text != ''):
+            pos_x =  ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2)
+            pos_y = ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .25))
+            if self.label_as_icon:
+                pos_y = pos_y - (self.gauge_size * 0.1)
             self.label_unit = Label(text=self.label_unit_text,
                             font_size=self.gauge_size * 0.05,
+                            bold=self.label_as_icon,
                             halign='center',
                             valign='middle',
-                            pos=( ((-Window.size[0] / 2) + self.gauge.pos[0] + self.width / 2), ((-Window.size[1] / 2)  + self.gauge.pos[1] + (self.height * .25))),
+                            pos=(pos_x, pos_y),
                             size=(self.width, self.height)
                             )
             
@@ -757,15 +794,25 @@ class VerticalSegmentedProgressBar(BoxLayout):
     segments = NumericProperty(16)  # Total number of segments
     filled_color = ListProperty([0, 1, 0, 1])  # Default filled segment color (green)
     empty_color = ListProperty([0.3, 0.3, 0.3, 1])  # Default empty segment color (grey)
+    label = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.update_segments()
+        # Add label to the bottom of the progress bar
         self.bind(filled_color=self.on_filled_color)
         
+    def on_kv_post(self, base_widget):
+        self.add_widget(Label(text=self.label, halign='center', valign='middle', font_size=dp(12)))
+        return super().on_kv_post(base_widget)
+
     def on_filled_color(self, instance, value):
         self.filled_color = value
         self.update_segments()  # Update the segments when filled_color changes
+
+    def on_label(self, instance, value):
+        self.label = value
+        self.update_segments()
 
     def update_segments(self):
         self.clear_widgets()  # Remove existing segments
@@ -777,6 +824,42 @@ class VerticalSegmentedProgressBar(BoxLayout):
                 self.add_widget(Segment(color=self.filled_color))  # Use filled_color
             else:
                 self.add_widget(Segment(color=self.empty_color))  # Use empty_color
+                
+                
+class CustomSlider(MDSlider):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pos = 10, 10
+        self.min = -1
+        self.max = 12
+        self.show_off = False
+        
+        # Trendy color updates:
+        self.hint_text_color = "white"
+        self.hint_bg_color = "#FF9A8B"  # Pastel red
+        self.track_color_inactive = "grey"  # Light blue
+        self.color = "#90D5EC"  # Soft cyan
+        self.thumb_color_active = "#FAD0C4"  # Peach
+        self.thumb_color_inactive = "#FAD0C4"  # Peach
+        
+    def on_touch_up(self, touch):
+        is_touched = False
+        for item in touch.grab_list:
+            # Check if the item is a weakref instance
+            if isinstance(item, weakref.ref):
+                # Dereference and check if it's CustomSlider
+                if isinstance(item(), CustomSlider):
+                    is_touched = True
+        if is_touched:
+            bm3 = BM3()
+            # Change value to the nearest single precision .5
+            if self.value < 0:
+                self.value = -1
+            bm3.send_live_adjust_burble(self.value)
+       
+        return super().on_touch_up(touch)
+    
+
 BM3().start()
 BM3().update_thread()
 
@@ -786,8 +869,9 @@ class MainApp(MDApp):
     theme_cls.theme_style = "Dark"
     theme_cls.primary_palette = "Red"
     
-    GasPedalPosition = NumericProperty(0)
-    BrakePedalPosition = NumericProperty(0)
+    AcceleratorPosition = NumericProperty(0)
+    # BrakePedalPosition = NumericProperty(0)
+    ThrottleAngle = NumericProperty(0)
     
     def build(self):
         # self.bm3 = BM3()
@@ -796,14 +880,14 @@ class MainApp(MDApp):
         Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
-        if DEVELOPER_MODE == 1:
-            def update_bar(dt):
-                self.GasPedalPosition += 6
-                if self.GasPedalPosition > 100:
-                    self.GasPedalPosition = 0
+        # if DEVELOPER_MODE == 1:
+        #     def update_bar(dt):
+        #         self.ThrottleAngle += 6
+        #         if self.ThrottleAngle > 100:
+        #             self.ThrottleAngle = 0
 
-            Clock.schedule_interval(update_bar, 0.1)          
-          
+        #     Clock.schedule_interval(update_bar, 0.1)          
+        
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
     ipAddress = StringProperty()
@@ -825,10 +909,12 @@ class MainApp(MDApp):
     BM3EthanolPercent = NumericProperty(0)
     Ign1Timing = NumericProperty(0)
     AFR = NumericProperty(0)
+    STFT = NumericProperty(0)
+    LTFT = NumericProperty(0)
     
     # Gauge Bar Images
     OilTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
-    Boost_image = StringProperty('data/gauges/normal/s2k_0.png')
+    Boost_Image = StringProperty('data/gauges/normal/s2k_0.png')
     CoolantTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
     IntakeTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
     Ign1Timing_Image = StringProperty('data/gauges/normal/s2k_0.png')
@@ -838,6 +924,8 @@ class MainApp(MDApp):
     BM3Connected = BooleanProperty(False)
     
     LETS_FUCKING_GO = BooleanProperty(False)
+    
+    LiveAdjustBurbleAggValue = NumericProperty(0)
     
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
@@ -853,8 +941,6 @@ class MainApp(MDApp):
         self.BM3Connected = bm3.Connected
         if not bm3.Connected:
             return
-        print('update_vehicle_data', bm3.Connected)
-
         
         self.Boost = bm3.get_car_data(Car.Data.Boost)
         self.IntakeAirTemp = bm3.get_car_data(Car.Data.IntakeAirTemp)
@@ -864,24 +950,29 @@ class MainApp(MDApp):
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
         self.AFR = float(bm3.get_car_data(Car.Data.AFR))
         self.OilTemp = Car.Data.OilTemp.value
+        self.STFT = Car.Data.STFT.value
+        self.LTFT = Car.Data.LTFT.value
+        self.AcceleratorPosition = Car.Data.AcceleratorPosition.value
+        
+        # self.ThrottleAngle = Car.Data.ThrottleAngle.value
         self.VIN = Car.Data.VIN
         
         self.LETS_FUCKING_GO = self.OilTemp > 200 and self.CoolantTemp > 200 and 7 <= self.BM3EthanolPercent <= 50 and self.IntakeAirTemp <= 180
 
-        if DEVELOPER_MODE == 1:
-        # increase up and down coolant temp
-            if Car.dev.OilTemp_inc == 1:
-                Car.dev.OilTemp = Car.dev.OilTemp + 1
-            else:
-                Car.dev.OilTemp = Car.dev.OilTemp - 1
-            if Car.dev.OilTemp > 300:
-                Car.dev.OilTemp_inc = 0
-            if Car.dev.OilTemp < 1:
-                Car.dev.OilTemp_inc = 1
-            self.OilTemp = Car.dev.OilTemp
+        # if DEVELOPER_MODE == 1:
+        # # increase up and down coolant temp
+        #     if Car.dev.OilTemp_inc == 1:
+        #         Car.dev.OilTemp = Car.dev.OilTemp + 1
+        #     else:
+        #         Car.dev.OilTemp = Car.dev.OilTemp - 1
+        #     if Car.dev.OilTemp > 300:
+        #         Car.dev.OilTemp_inc = 0
+        #     if Car.dev.OilTemp < 1:
+        #         Car.dev.OilTemp_inc = 1
+        #     self.OilTemp = Car.dev.OilTemp
             
         if 0 <= int(round(self.Boost/Car.gauge.persegment.Boost)) <= 32:
-            self.Boost_image = str(Car.gauge.image.Boost+(str(int(round(self.Boost/Car.gauge.persegment.Boost))))+'.png')
+            self.Boost_Image = str(Car.gauge.image.Boost+(str(int(round(self.Boost/Car.gauge.persegment.Boost))))+'.png')
         if 0 <= int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp)) <= 32:
             self.CoolantTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp))))+'.png')
         if 0 <= int(round(self.OilTemp/Car.gauge.persegment.OilTemp)) <= 32:
@@ -911,7 +1002,6 @@ class MainApp(MDApp):
 
         self.ipAddress = sys.ip
         self.WifiNetwork = sys.ssid
-        
 
             
 if __name__ =='__main__':
