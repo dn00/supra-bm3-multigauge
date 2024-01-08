@@ -143,7 +143,7 @@ class BM3:
             "app-version":	"1.00.000-1"
     }
     
-    
+
     def proxy_callback(self, type, message):
         print(f"Proxy callback triggered with type: {type}")
 
@@ -200,6 +200,7 @@ class BM3:
 
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
+
     
     def connect(self):
             if self.Connecting:
@@ -273,12 +274,17 @@ class BM3:
         while True:
             current_time = time.time()
             time_since_last_data = current_time - self.last_car_data_received
-
             if self.Connected and time_since_last_data > pause_threshold:
                 with self.request_data_lock:
+            
                     if time.time() - self.last_car_data_received > pause_threshold:
                         try:
+                            self.count = 0
+                            # self.Connection.subscribe(destination='/queue/dashdata' , id=4)
+                            # self.Connection.subscribe(destination='/queue/dashstatus', id=5)
                             self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+                            # self.Connection.send(destination='/app/ram', headers=jwt_headers, body=json.dumps(big_payload))
+
                             self.last_car_data_received = time.time()
                             time.sleep(backoff_time) 
                         
@@ -290,6 +296,7 @@ class BM3:
             else:
                 backoff_time = 0.1
                 time.sleep(0.1)  # Adjust the sleep time as needed.
+        pass
 
     def send_map_switch(self, map: int):
         if not map == 0 or not map == 3:
@@ -949,10 +956,10 @@ class MainApp(MDApp):
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
         self.AFR = float(bm3.get_car_data(Car.Data.AFR))
-        self.OilTemp = Car.Data.OilTemp.value
-        self.STFT = Car.Data.STFT.value
-        self.LTFT = Car.Data.LTFT.value
-        self.AcceleratorPosition = Car.Data.AcceleratorPosition.value
+        self.OilTemp = bm3.get_car_data(Car.Data.OilTemp)
+        self.STFT = bm3.get_car_data(Car.Data.STFT)
+        self.LTFT = bm3.get_car_data(Car.Data.LTFT)
+        self.AcceleratorPosition = bm3.get_car_data(Car.Data.AcceleratorPosition)
         
         # self.ThrottleAngle = Car.Data.ThrottleAngle.value
         self.VIN = Car.Data.VIN
