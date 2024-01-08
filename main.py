@@ -29,6 +29,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
 from kivymd.uix.slider import MDSlider
 import weakref
+import re
 GLOBAL_VERSION = "V0.0.1"
 
 DEVELOPER_MODE = 1           # set to 1 to disable all GPIO, temp probe, and obd stuff
@@ -173,22 +174,26 @@ class BM3:
                 self.connect()
     
     def handle_car_data(self, payload):
-        split_payload = payload.split(',')
         result_dict = {}
-        for i, value in enumerate(split_payload):
-            split_value = value.strip('"').split('+')
-            if len(split_value) == 2:
-                result_dict[split_value[0]] = split_value[1]
-            else:
-                result_dict[str(i)] = value.strip('"')
-        
+        pattern = r'"(\w+)\+(-?\d+\.\d+|-?\d+)'
+
+        matches = re.findall(pattern, payload)
+        for key, value in matches:
+            result_dict[key] = float(value) if '.' in value else int(value)
+
         self.car_data = result_dict
         self.last_car_data_received = time.time()
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
-            return self.car_data[car_diag_object.PID]
+            raw_value = self.car_data.get(car_diag_object.PID, -1)
+            if isinstance(raw_value, float):
+                # Limit the value to 2 decimal places using multiplication and integer casting
+                return int(raw_value * 100) / 100.0
+            else:
+                return raw_value
         return -1
+
     
     def subscribe_to_queues(self):
         self.Connection.subscribe(destination='/user/queue/version', id=1)
@@ -828,7 +833,7 @@ class VerticalSegmentedProgressBar(BoxLayout):
 
     def update_segments(self):
         self.clear_widgets()  # Remove existing segments
-        filled = int(self.segments * self.value / 100)  # Calculate how many segments should be filled
+        filled = int(self.segments * self.value / 99)  # Calculate how many segments should be filled
 
         # Create the segments from bottom to top
         for i in range(self.segments):
@@ -954,13 +959,13 @@ class MainApp(MDApp):
         if not bm3.Connected:
             return
         
-        self.Boost = bm3.get_car_data(Car.Data.Boost)
-        self.IntakeAirTemp = bm3.get_car_data(Car.Data.IntakeAirTemp)
+        self.Boost = int(bm3.get_car_data(Car.Data.Boost))
+        self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
         self.RPM = Car.Data.RPM.value
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
-        self.AFR = float(bm3.get_car_data(Car.Data.AFR))
+        self.AFR = (bm3.get_car_data(Car.Data.AFR))
         self.OilTemp = bm3.get_car_data(Car.Data.OilTemp)
         self.STFT = bm3.get_car_data(Car.Data.STFT)
         self.LTFT = bm3.get_car_data(Car.Data.LTFT)
