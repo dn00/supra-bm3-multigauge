@@ -1054,6 +1054,10 @@ class MainApp(MDApp):
         # Attempt to run the file
         try:
             # check if script is running on a Raspberry Pi
+            print(os.uname().machine)
+            print(os.uname().machine)
+            print(os.uname().machine)
+            print(os.uname().machine)
             if 'arm' in os.uname().machine:
                 process = subprocess.Popen(["./bootmod3_linux-arm"])
             else:
