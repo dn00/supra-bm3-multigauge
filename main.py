@@ -42,10 +42,10 @@ from kivy.config import Config
 Config.set('graphics', 'width', '480')
 Config.set('graphics', 'height', '800')
 Config.set('graphics', 'show_cursor', 0)
-Config.set('input', 'mouse', 'mouse,disable_multitouch')
-Config.set('graphics', 'rotation', '180')
+
 from kivy.core.window import Window
 Window.show_cursor = False
+Window.rotation = 180
 
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
