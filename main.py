@@ -9,7 +9,7 @@ from kivymd.uix.chip import MDChip
 from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
 from kivy.animation import Animation
-from kivy.uix.screenmanager import Screen
+from kivy.uix.screenmanager import Screen, FadeTransition
 from kivy.clock import Clock
 from payloads import jwt, big_payload
 import threading
@@ -30,6 +30,8 @@ from kivy.properties import NumericProperty, StringProperty, BooleanProperty, Li
 from kivymd.uix.slider import MDSlider
 import weakref
 import re
+import os
+import signal
 GLOBAL_VERSION = "V0.0.1"
 
 DEVELOPER_MODE = 1           # set to 1 to disable all GPIO, temp probe, and obd stuff
@@ -277,7 +279,7 @@ class BM3:
                 with self.request_data_lock:
                     try:
                         self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
-                        time.sleep(5) 
+                        time.sleep(4) 
                     except Exception as e:
                         # stop the thread if the connection is lost
                         # break
@@ -357,7 +359,7 @@ class Car:
         AcceleratorPosition = CarDiagData("5814", 0)
         ThrottleAngle = CarDiagData("4600", 0)
         Boost = CarDiagData("4205", 0)
-        RPM = CarDiagData("-1", 0)
+        RPM = CarDiagData("5819", 0)
         Speed = CarDiagData("-1", 0)
         OilTemp = CarDiagData("5822", 0)
         CoolantTemp = CarDiagData("5805", 0)
@@ -576,6 +578,15 @@ class CustomGauge(FloatLayout):
 
 class Gauge1Screen(Screen):
     pass
+
+class StartScreen(Screen):
+    def transition_to_main_app(self):
+        print("Starting auxiliary apps and initializing the main app...")
+        App.get_running_app().start_bm3_agent()
+        BM3().start()
+        BM3().update_thread()
+        self.manager.current = 'gauge1'
+
 class InfoScreen(Screen):
     def on_enter(self):
         sys.get_system_info = True
@@ -875,10 +886,7 @@ class CustomSlider(MDSlider):
             bm3.send_live_adjust_burble(self.value)
        
         return super().on_touch_up(touch)
-    
 
-BM3().start()
-BM3().update_thread()
 
 
 class MainApp(MDApp):
@@ -894,6 +902,7 @@ class MainApp(MDApp):
         # self.bm3 = BM3()
         # BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=BM3().connect)
         # BM3ConnectionThread.start()
+        self.root.ids.sm.transition = FadeTransition()
         Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
@@ -939,8 +948,10 @@ class MainApp(MDApp):
     
     BM3Connecting = BooleanProperty(False)
     BM3Connected = BooleanProperty(False)
+    BM3AgentPID = NumericProperty(-1)
     
     LETS_FUCKING_GO = BooleanProperty(False)
+    rpm_zero_time = None
     
     LiveAdjustBurbleAggValue = NumericProperty(0)
     
@@ -956,13 +967,29 @@ class MainApp(MDApp):
         bm3 = BM3()
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
-        if not bm3.Connected:
+        if not bm3.Connected or self.BM3AgentPID == -1:
             return
         
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
-        self.RPM = Car.Data.RPM.value
+        # self.RPM = 0
+        self.RPM = bm3.get_car_data(Car.Data.RPM)
+        if self.RPM == 0:
+            # If the timer is not already set, set it
+            if not self.rpm_zero_time:
+                self.rpm_zero_time = time.time()
+            else:
+                # Check if RPM has been zero for more than 10 seconds
+                if time.time() - self.rpm_zero_time > 10:
+                    self.kill_bm3_agent()
+                    self.rpm_zero_time = None  # Reset the timer
+                    self.root.ids.sm.current = 'start'
+                    return
+        else:
+            # If RPM is not zero, reset the timer
+            self.rpm_zero_time = None
+        
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
         self.AFR = (bm3.get_car_data(Car.Data.AFR))
@@ -1018,7 +1045,24 @@ class MainApp(MDApp):
 
         self.ipAddress = sys.ip
         self.WifiNetwork = sys.ssid
+        
+    def start_bm3_agent(self):
+        # Change the current working directory to the script's directory
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_directory)
 
+        # Attempt to run the file
+        try:
+            process = subprocess.Popen(["./bootmod3_linux-amd64"])
+            self.BM3AgentPID = process.pid
+        except Exception as e:
+            print("Error:", e)
+        
+    def kill_bm3_agent(self):
+        if self.BM3AgentPID != -1:
+            os.kill(self.BM3AgentPID, signal.SIGTERM)
+
+            self.BM3AgentPID = -1
             
 if __name__ =='__main__':
     MainApp().run()

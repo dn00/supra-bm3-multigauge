@@ -26,10 +26,21 @@
     spacing: dp(2)  # Spacing between segments
     on_value: self.update_segments()
 
+<StartScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Image:
+            source: 'data/wallpapers/supra.jpg'
+            size_hint: 1, 1
+            allow_stretch: True
+            keep_ratio: False
+            on_touch_down: root.transition_to_main_app()  # Call method on the root widget of this screen
 BoxLayout:
     orientation: 'vertical'
     ScreenManager:
         id: sm
+        StartScreen:
+            name: 'start'
         Gauge1Screen:
             name: 'gauge1'
             FloatLayout:
