@@ -283,6 +283,9 @@ class BM3:
     
     def request_car_data(self):
         while True:
+            time_since_last_data = time.time() - self.last_car_data_received
+            if time_since_last_data > 5:
+                self.Receiving_Data = False
             if self.Connected:
                 with self.request_data_lock:
                     try:
