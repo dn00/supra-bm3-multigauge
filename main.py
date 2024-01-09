@@ -128,6 +128,7 @@ class BM3:
     
     Connected = False
     Connecting = False
+    Receiving_Data = False
     
     Listener = None
     car_data = None
@@ -151,6 +152,7 @@ class BM3:
         print(f"Proxy callback triggered with type: {type}")
 
         if type == DESTINATIONS.CAR_DASH_DATA:
+            self.Receiving_Data = True
             self.handle_car_data(message)
 
         elif type == DESTINATIONS.CONNECTED:
@@ -161,6 +163,7 @@ class BM3:
 
         elif type == DESTINATIONS.DISCONNECTED:
             print('Disconnected from the server.')
+            self.Receiving_Data = False
             if self.Connected:  
                 self.Connected = False
                 self.Connection = None
@@ -169,6 +172,7 @@ class BM3:
 
         elif type == DESTINATIONS.CONNECTION_ERROR:
             print('Connection error encountered.')
+            self.Receiving_Data = False
             if self.Connected:
                 self.Connected = False
                 self.Connection = None
@@ -207,7 +211,9 @@ class BM3:
 
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
-    
+        
+        self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+        
     def connect(self):
             if self.Connecting:
                 # If already attempting to connect, do not start another attempt.
@@ -253,6 +259,8 @@ class BM3:
                     
                         self.Connection.set_listener('', self.Listener)
                         self.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True)
+                        self.Connecting = False
+
                         time.sleep(2)
                 except Exception as e:
                     print(f"Connection failed: {e}")
@@ -950,6 +958,8 @@ class MainApp(MDApp):
     BM3Connected = BooleanProperty(False)
     BM3AgentPID = NumericProperty(-1)
     
+    ReceivingData = BooleanProperty(False)
+    
     LETS_FUCKING_GO = BooleanProperty(False)
     rpm_zero_time = None
     
@@ -967,6 +977,7 @@ class MainApp(MDApp):
         bm3 = BM3()
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
+        self.ReceivingData = bm3.Receiving_Data
         self.RPM = bm3.get_car_data(Car.Data.RPM)
         if self.RPM == 0:
             # If the timer is not already set, set it

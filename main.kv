@@ -193,7 +193,7 @@ BoxLayout:
                         size_hint_x: None
                         color: 0, 0, 0, 1
                         chip_text: "BM3"
-                        failed: not app.BM3Connected
+                        failed: not app.BM3Connected or not app.ReceivingData
                         active: app.BM3Connecting
                     StatusChip:
                         size_hint_x: None
