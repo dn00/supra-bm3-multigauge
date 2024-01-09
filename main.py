@@ -42,6 +42,8 @@ from kivy.config import Config
 Config.set('graphics', 'width', '480')
 Config.set('graphics', 'height', '800')
 Config.set('graphics', 'show_cursor', 0)
+Config.set('input', 'mouse', 'mouse,disable_multitouch')
+Config.set('graphics', 'rotation', '180')
 from kivy.core.window import Window
 Window.show_cursor = False
 
@@ -588,12 +590,17 @@ class CustomGauge(FloatLayout):
 
 
 class Gauge1Screen(Screen):
-    pass
-
+    def on_touch_down(self, touch):
+        super(Gauge1Screen, self).on_touch_down(touch)
+        app = App.get_running_app()
+        app.rpm_zero_time = None
+        
 class StartScreen(Screen):
     def transition_to_main_app(self):
         print("Starting auxiliary apps and initializing the main app...")
-        App.get_running_app().start_bm3_agent()
+        app = App.get_running_app()
+        app.rpm_zero_time = None
+        app.start_bm3_agent()
         BM3().start()
         BM3().update_thread()
         self.manager.current = 'gauge1'
@@ -905,6 +912,8 @@ class MainApp(MDApp):
     theme_cls.theme_style = "Dark"
     theme_cls.primary_palette = "Red"
     
+
+        
     AcceleratorPosition = NumericProperty(0)
     # BrakePedalPosition = NumericProperty(0)
     ThrottleAngle = NumericProperty(0)
@@ -967,7 +976,7 @@ class MainApp(MDApp):
     rpm_zero_time = None
     
     LiveAdjustBurbleAggValue = NumericProperty(0)
-    
+
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
         self.NetworkConnected = sys.NetworkConnected
@@ -988,7 +997,7 @@ class MainApp(MDApp):
                 self.rpm_zero_time = time.time()
             else:
                 # Check if RPM has been zero for more than 10 seconds
-                if time.time() - self.rpm_zero_time > 10:
+                if time.time() - self.rpm_zero_time > 20:
                     self.kill_bm3_agent()
                     self.rpm_zero_time = None  # Reset the timer
                     self.root.ids.sm.current = 'start'
