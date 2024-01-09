@@ -112,7 +112,6 @@ wss.on('connection', function connection(ws) {
           stompClient.reconnect_delay = 1E3;
           stompClient.heartbeat.outgoing = 1E4;
           stompClient.connect({}, function(frame) {
-            console.log('Connected to external STOMP server:', frame);
             const connectedFrame = 'CONNECTED\nversion:1.1\nheart-beat:10000,10000\n\n\0';
             ws.send(connectedFrame);
             // stompClient.send("/app/vin", HEADER );
@@ -165,7 +164,6 @@ wss.on('connection', function connection(ws) {
         // if not connected, send error frame
         // if connected, send frame to stompClient
         // Check if stompClient is connecte
-        console.log('123123321')
         if (!stompClient.connected) {
           const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
           ws.send(errorFrame);

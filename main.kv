@@ -50,7 +50,12 @@ BoxLayout:
                     Rectangle:
                         size: self.size
                         pos: self.pos
-          
+                HorizontalSegmentedProgressBar:
+                    id: rpm
+                    value: app.RPM
+                    size_hint: (1.01, .032)
+                    pos_hint: {'center_x': 0.5, 'center_y': .982}
+                    padding: 4, 4, 4, 4
                 VerticalSegmentedProgressBar:
                     id: gas
                     value: app.AcceleratorPosition
@@ -90,7 +95,7 @@ BoxLayout:
                     gauge_image: "data/gauges/supra_turbo.png"
                     gauge_bars: str(app.Boost_Image)
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: -20, 480
+                    pos: -20, 470
                     gauge_size: 350
  
                 RelativeLayout:
@@ -180,7 +185,7 @@ BoxLayout:
                     size_hint_y: None
                     height:32
                     width: 480
-                    pos_hint: {"top": .99}  # This positions it at the top of the FloatLayout
+                    pos_hint: {"top": .965}  # This positions it at the top of the FloatLayout
                     padding: 6,6,6,6
                     StatusChip:
                         size_hint_x: None
@@ -204,6 +209,20 @@ BoxLayout:
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
+                        chip_text: "CROM"
+                        failed_color: 0.5, 0.5, 0.5, 1
+                        failed: not app.CustomRom
+                        # active: True
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
+                        chip_text: "MAP " + app.CurrentMap if app.CurrentMap != "-1" else "MAP"
+                        failed_color: 0.5, 0.5, 0.5, 1
+                        failed: app.CurrentMap == "-1"
+                        # active: True
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
                         chip_text: "LETS GO"
                         failed: not app.LETS_FUCKING_GO
                 BottomBar:
@@ -213,6 +232,7 @@ BoxLayout:
                         id: "burble_slider"
                         value: app.LiveAdjustBurbleAggValue
                         step: 0.5
+                        disabled: not app.CustomRom
                         # on_valueapp.dispatch_send_live_adjust_burble(*args)
                         # pos: 10, 10
                         # min: -1

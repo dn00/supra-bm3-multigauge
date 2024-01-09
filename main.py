@@ -26,7 +26,7 @@ from kivy.uix.widget import Widget
 from kivy.graphics import Color, Rectangle
 from kivymd.uix.chip import MDChip, MDChipText
 from kivymd.uix.menu import MDDropdownMenu
-from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
+from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ReferenceListProperty
 from kivymd.uix.slider import MDSlider
 import weakref
 import re
@@ -45,7 +45,6 @@ Config.set('graphics', 'show_cursor', 0)
 
 from kivy.core.window import Window
 Window.show_cursor = False
-Window.rotation = 180
 
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
@@ -59,6 +58,8 @@ heart_beat = (10000, 10000)
 class DESTINATIONS:
     CAR_VIN = '/user/queue/vin'
     CAR_DASH_DATA = '/queue/dashdata'
+    MAP_SWITCHED = '/user/queue/mapsw'
+    ID = '/user/queue/id'
     CAR_STATUS = 'car_status'
     DISCONNECTED = 'disconnected'
     CONNECTED = 'connected'
@@ -82,6 +83,10 @@ class MyListener(stomp.ConnectionListener):
                 self.callback(DESTINATIONS.CAR_VIN, frame.body)
             elif frame.headers['destination'] == DESTINATIONS.CAR_DASH_DATA:
                 self.callback(DESTINATIONS.CAR_DASH_DATA, frame.body)
+            elif frame.headers['destination'] == DESTINATIONS.MAP_SWITCHED:
+                self.callback(DESTINATIONS.MAP_SWITCHED, frame.body)
+            elif frame.headers['destination'] == DESTINATIONS.ID:
+                self.callback(DESTINATIONS.ID, frame.body)
         # print(f'Message: {headers.destination}, {message}')
         # if self.callback:
         #     self.callback(headers, message)
@@ -134,6 +139,9 @@ class BM3:
     
     Listener = None
     car_data = None
+    current_map = "-1"
+    custom_rom = False
+    
     last_car_data_received = time.time() + 1
     connect_headers = {
             'accept-version': '1.1,1.0',
@@ -156,7 +164,10 @@ class BM3:
         if type == DESTINATIONS.CAR_DASH_DATA:
             self.Receiving_Data = True
             self.handle_car_data(message)
-
+        elif type == DESTINATIONS.MAP_SWITCHED:
+            self.handle_map_switched(message)
+        elif type == DESTINATIONS.ID:
+            self.handle_ids(message)
         elif type == DESTINATIONS.CONNECTED:
             print('Connected to the server successfully.')
             self.Connected = True
@@ -181,6 +192,11 @@ class BM3:
                 time.sleep(2)
                 self.connect()
     
+    def handle_ids(self, message):
+        data = json.loads(message)
+        if data:
+            self.custom_rom = data.get('crom', False)
+    
     def handle_car_data(self, payload):
         result_dict = {}
         pattern = r'"(\w+)\+(-?\d+\.\d+|-?\d+)'
@@ -191,6 +207,11 @@ class BM3:
 
         self.car_data = result_dict
         self.last_car_data_received = time.time()
+        
+    def handle_map_switched(self, message):
+        data = json.loads(message)
+        if data:
+            self.current_map = data.get('slot', "-1")
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
@@ -214,7 +235,9 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
-        self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body=json.dumps(big_payload))
+        self.send_map_switch()
+        # self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
     def connect(self):
             if self.Connecting:
@@ -323,13 +346,17 @@ class BM3:
         #         backoff_time = 0.1
         #         time.sleep(0.1)  # Adjust the sleep time as needed.
 
-    def send_map_switch(self, map: int):
-        if not map == 0 or not map == 3:
+    def send_map_switch(self, map: str = ""):
+        if not self.custom_rom:
+            return
+        if not map == "0" or not map == "3" or map == "":
             # Can't use map 1 or 2 any way
             return
-        self.Connection.send(destination='/app/mapsw', body=json.dumps({"slot": str(map)}))
+        self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
     def send_live_adjust_burble(self, value: float):
+        if not self.custom_rom:
+            return
         if not -1 <= value <= 12:
             return
                 
@@ -342,7 +369,8 @@ class BM3:
             payload['agg'] = 0
             payload['enabled'] = False
 
-        self.Connection.send(destination='/app/burble', body=json.dumps(payload))
+        self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
+        self.send_map_switch()
             
 
     def send_for_vin(self):
@@ -364,7 +392,6 @@ class BM3:
         
     def update_thread(self):
         BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
-        print('starting update thread')
         BM3UpdateThread.start()
        
 class Car:
@@ -839,7 +866,7 @@ class VerticalSegmentedProgressBar(BoxLayout):
     value = NumericProperty(0)  # The current value of the progress bar
     segments = NumericProperty(16)  # Total number of segments
     filled_color = ListProperty([0, 1, 0, 1])  # Default filled segment color (green)
-    empty_color = ListProperty([0.3, 0.3, 0.3, 1])  # Default empty segment color (grey)
+    empty_color = ListProperty([0.14, 0.14, 0.14, 1])  # Default empty segment color (grey)
     label = StringProperty("")
 
     def __init__(self, **kwargs):
@@ -871,7 +898,72 @@ class VerticalSegmentedProgressBar(BoxLayout):
             else:
                 self.add_widget(Segment(color=self.empty_color))  # Use empty_color
                 
+class HorizontalSegmentedProgressBar(BoxLayout):
+    value = NumericProperty(0)  # Current RPM value
+    segments = NumericProperty(60)  # Total number of segments
+    rpm_ranges = ListProperty([(0, 4500), (4501, 6250), (6251, 7000)])  # RPM ranges
+    rpm_colors = ListProperty([(0, 1, 0, 1), (1, 0.5, 0, 1), (1, 0, 0, 1)])  # Corresponding colors
+    dimmed_colors = ListProperty([(0, 0.5, 0, 0.5), (0.5, 0.25, 0, 0.5), (0.5, 0, 0, 0.5)])  # Dimmed colors for inactive segments
+    empty_color = ListProperty([0.14, 0.14, 0.14, 1])  # Empty segment color
+    label = StringProperty("")
+    flash_color = ListProperty([0.14, 0.14, 0.14, 1])  # Color for flashing effect
+    flash_duration = NumericProperty(0.06)  # Duration of each flash in seconds
+    is_flashing = BooleanProperty(False)  # Flashing state
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'  # Set layout to horizontal
+        self.update_segments()
+        
+    def on_value(self, instance, value):
+            if not self.is_flashing:
+                self.update_segments()
+            if value >= 6350 and not self.is_flashing:  # Check if RPM reaches the shift point
+                self.start_flashing()
+            elif value < 6350 and self.is_flashing:
+                self.stop_flashing()
                 
+    def start_flashing(self):
+        self.is_flashing = True
+        Clock.schedule_interval(self.flash, self.flash_duration)
+
+    def stop_flashing(self):
+        self.is_flashing = False
+        Clock.unschedule(self.flash)
+        self.update_segments()  # Update segments to show normal state
+
+    def flash(self, dt):
+        if self.is_flashing:
+            for segment in self.children:
+                segment.color = self.flash_color if segment.color != self.flash_color else self.get_color_for_value(self.value)
+        else:
+            self.stop_flashing()
+            
+    def update_segments(self):
+        self.clear_widgets()
+        max_rpm = self.rpm_ranges[-1][1]  # Max RPM value, assuming the last range ends with the highest RPM
+        segment_rpm = max_rpm / self.segments  # RPM value each segment represents
+
+        for i in range(self.segments):
+            segment_value = segment_rpm * i
+            if segment_value < self.value:
+                segment_color = self.get_color_for_value(segment_value)
+            else:
+                segment_color = self.get_dimmed_color_for_value(segment_value)
+            
+            self.add_widget(Segment(color=segment_color))
+
+    def get_color_for_value(self, value):
+        for i, (start, end) in enumerate(self.rpm_ranges):
+            if start <= value <= end:
+                return self.rpm_colors[i]
+        return self.empty_color
+
+    def get_dimmed_color_for_value(self, value):
+        for i, (start, end) in enumerate(self.rpm_ranges):
+            if start <= value <= end:
+                return self.dimmed_colors[i]
+        return self.empty_color
+
 class CustomSlider(MDSlider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -926,14 +1018,7 @@ class MainApp(MDApp):
         Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
-        # if DEVELOPER_MODE == 1:
-        #     def update_bar(dt):
-        #         self.ThrottleAngle += 6
-        #         if self.ThrottleAngle > 100:
-        #             self.ThrottleAngle = 0
 
-        #     Clock.schedule_interval(update_bar, 0.1)          
-        
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
     ipAddress = StringProperty()
@@ -946,9 +1031,12 @@ class MainApp(MDApp):
     VIN = StringProperty()
 
     # Vehicle
-
+    CurrentMap = StringProperty("-1")
+    CustomRom = BooleanProperty(False)
+    
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
+    # TEST_RPM = 200
     CoolantTemp = NumericProperty(0)
     OilTemp = NumericProperty(0)
     IntakeAirTemp = NumericProperty(0)
@@ -957,7 +1045,7 @@ class MainApp(MDApp):
     AFR = NumericProperty(0)
     STFT = NumericProperty(0)
     LTFT = NumericProperty(0)
-    
+        
     # Gauge Bar Images
     OilTemp_Image = StringProperty('data/gauges/normal/s2k_0.png')
     Boost_Image = StringProperty('data/gauges/normal/s2k_0.png')
@@ -991,23 +1079,34 @@ class MainApp(MDApp):
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
         self.RPM = bm3.get_car_data(Car.Data.RPM)
-        if self.RPM == 0:
-            # If the timer is not already set, set it
-            if not self.rpm_zero_time:
-                self.rpm_zero_time = time.time()
-            else:
-                # Check if RPM has been zero for more than 10 seconds
-                if time.time() - self.rpm_zero_time > 20:
-                    self.kill_bm3_agent()
-                    self.rpm_zero_time = None  # Reset the timer
-                    self.root.ids.sm.current = 'start'
-                    return
-        else:
-            # If RPM is not zero, reset the timer
-            self.rpm_zero_time = None
+           
+        # self.RPM += self.TEST_RPM
+        # if self.RPM > 7000:
+        #     self.TEST_RPM = -100
+        # if self.RPM < 0:
+        #     self.TEST_RPM = 100
+        
+        
+        # if self.RPM == 0:
+        #     # If the timer is not already set, set it
+        #     if not self.rpm_zero_time:
+        #         self.rpm_zero_time = time.time()
+        #     else:
+        #         # Check if RPM has been zero for more than 10 seconds
+        #         if time.time() - self.rpm_zero_time > 20:
+        #             self.kill_bm3_agent()
+        #             self.rpm_zero_time = None  # Reset the timer
+        #             self.root.ids.sm.current = 'start'
+        #             return
+        # else:
+        #     # If RPM is not zero, reset the timer
+        #     self.rpm_zero_time = None
         if not bm3.Connected or self.BM3AgentPID == -1:
             return
         
+        self.CurrentMap = bm3.current_map
+        self.CustomRom = bm3.custom_rom
+
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
