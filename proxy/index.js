@@ -121,12 +121,16 @@ wss.on('connection', function connection(ws) {
           stompClient.debug = function(str) {
             console.log('STOMP Debug:', str);
             if (str.includes("Whoops! Lost connection to")) {
-              if (ws.readyState === 1) {
-                const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
-                ws.send(errorFrame);
-                ws.close();
-                stompClient = null;
-              }
+              const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
+              ws.send(errorFrame);
+              ws.close();
+              stompClient = null;
+              // if (ws.readyState === 1) {
+              //   const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
+              //   ws.send(errorFrame);
+              //   // ws.close();
+              //   // stompClient = null;
+              // }
             }
           };
         }
@@ -160,7 +164,16 @@ wss.on('connection', function connection(ws) {
         // check stompClient if connected
         // if not connected, send error frame
         // if connected, send frame to stompClient
-        
+        // Check if stompClient is connecte
+        console.log('123123321')
+        if (!stompClient.connected) {
+          const errorFrame = 'ERROR\nmessage:Error connecting to external STOMP server\n\n\0';
+          ws.send(errorFrame);
+          ws.close();
+          stompClient = null;
+          return;
+        }
+
         stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body)
         
         // if (TEST && parsedFrame.destination === '/app/startdash') {

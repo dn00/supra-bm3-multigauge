@@ -188,13 +188,13 @@ class BM3:
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
-            raw_value = self.car_data.get(car_diag_object.PID, -1)
+            raw_value = self.car_data.get(car_diag_object.PID, 0)
             if isinstance(raw_value, float):
                 # Limit the value to 2 decimal places using multiplication and integer casting
                 return int(raw_value * 100) / 100.0
             else:
                 return raw_value
-        return -1
+        return 0
 
     
     def subscribe_to_queues(self):
@@ -967,13 +967,6 @@ class MainApp(MDApp):
         bm3 = BM3()
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
-        if not bm3.Connected or self.BM3AgentPID == -1:
-            return
-        
-        self.Boost = int(bm3.get_car_data(Car.Data.Boost))
-        self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
-        self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
-        # self.RPM = 0
         self.RPM = bm3.get_car_data(Car.Data.RPM)
         if self.RPM == 0:
             # If the timer is not already set, set it
@@ -989,6 +982,13 @@ class MainApp(MDApp):
         else:
             # If RPM is not zero, reset the timer
             self.rpm_zero_time = None
+        if not bm3.Connected or self.BM3AgentPID == -1:
+            return
+        
+        self.Boost = int(bm3.get_car_data(Car.Data.Boost))
+        self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
+        self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
+
         
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
@@ -1053,7 +1053,11 @@ class MainApp(MDApp):
 
         # Attempt to run the file
         try:
-            process = subprocess.Popen(["./bootmod3_linux-amd64"])
+            # check if script is running on a Raspberry Pi
+            if 'arm' in os.uname().machine:
+                process = subprocess.Popen(["./bootmod3_linux-arm"])
+            else:
+                process = subprocess.Popen(["./bootmod3_linux-amd64"])
             self.BM3AgentPID = process.pid
         except Exception as e:
             print("Error:", e)
