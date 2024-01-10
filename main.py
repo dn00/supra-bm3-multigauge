@@ -196,6 +196,7 @@ class BM3:
         data = json.loads(message)
         if data:
             self.custom_rom = data.get('crom', False)
+            self.current_map = data.get('msid', "-1")
     
     def handle_car_data(self, payload):
         result_dict = {}
@@ -388,11 +389,11 @@ class BM3:
         
     def start(self):
         BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=self.connect)
-        # BM3ConnectionThread.start()
+        BM3ConnectionThread.start()
         
     def update_thread(self):
         BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
-        # BM3UpdateThread.start()
+        BM3UpdateThread.start()
        
 class Car:
     class Data:
@@ -1089,21 +1090,20 @@ class MainApp(MDApp):
         # if self.RPM < 0:
         #     self.TEST_RPM = 100
         
-        
-        # if self.RPM == 0:
-        #     # If the timer is not already set, set it
-        #     if not self.rpm_zero_time:
-        #         self.rpm_zero_time = time.time()
-        #     else:
-        #         # Check if RPM has been zero for more than 10 seconds
-        #         if time.time() - self.rpm_zero_time > 20:
-        #             self.kill_bm3_agent()
-        #             self.rpm_zero_time = None  # Reset the timer
-        #             self.root.ids.sm.current = 'start'
-        #             return
-        # else:
-        #     # If RPM is not zero, reset the timer
-        #     self.rpm_zero_time = None
+        if self.RPM == 0:
+            # If the timer is not already set, set it
+            if not self.rpm_zero_time:
+                self.rpm_zero_time = time.time()
+            else:
+                # Check if RPM has been zero for more than 10 seconds
+                if time.time() - self.rpm_zero_time > 20:
+                    self.kill_bm3_agent()
+                    self.rpm_zero_time = None  # Reset the timer
+                    self.root.ids.sm.current = 'start'
+                    return
+        else:
+            # If RPM is not zero, reset the timer
+            self.rpm_zero_time = None
         if not bm3.Connected or self.BM3AgentPID == -1:
             return
         
