@@ -388,11 +388,11 @@ class BM3:
         
     def start(self):
         BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=self.connect)
-        BM3ConnectionThread.start()
+        # BM3ConnectionThread.start()
         
     def update_thread(self):
         BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
-        BM3UpdateThread.start()
+        # BM3UpdateThread.start()
        
 class Car:
     class Data:
@@ -1004,8 +1004,6 @@ class MainApp(MDApp):
     theme_cls.theme_style = "Dark"
     theme_cls.primary_palette = "Red"
     
-
-        
     AcceleratorPosition = NumericProperty(0)
     # BrakePedalPosition = NumericProperty(0)
     ThrottleAngle = NumericProperty(0)
