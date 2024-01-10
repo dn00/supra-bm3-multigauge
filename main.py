@@ -196,7 +196,7 @@ class BM3:
         data = json.loads(message)
         if data:
             self.custom_rom = data.get('crom', False)
-            self.current_map = data.get('msid', "-1")
+            # self.current_map = data.get('msid', "-1")
     
     def handle_car_data(self, payload):
         result_dict = {}
@@ -212,7 +212,9 @@ class BM3:
     def handle_map_switched(self, message):
         data = json.loads(message)
         if data:
-            self.current_map = data.get('slot', "-1")
+            slot = data.get('slot', "-1")
+            if len(slot) > 0:
+                self.current_map = data.get('slot', "-1")
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
@@ -230,7 +232,7 @@ class BM3:
         self.Connection.subscribe(destination='/user/queue/id', id=2)
         self.Connection.subscribe(destination='/user/queue/vin', id=7)
         self.Connection.subscribe(destination='/user/queue/ram', id=8)
-        self.Connection.subscribe(destination='/user/queue/mapsw', id=5)
+        self.Connection.subscribe(destination='/user/queue/mapsw', id=11)
 
 
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
@@ -238,7 +240,7 @@ class BM3:
         
         self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body=json.dumps(big_payload))
         self.send_map_switch()
-        # self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+        self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
     def connect(self):
             if self.Connecting:
@@ -350,9 +352,9 @@ class BM3:
     def send_map_switch(self, map: str = ""):
         if not self.custom_rom:
             return
-        if not map == "0" or not map == "3" or map == "":
-            # Can't use map 1 or 2 any way
-            return
+        # if not map == "0" or not map == "3" or map == "":
+        #     # Can't use map 1 or 2 any way
+        #     return
         self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
     def send_live_adjust_burble(self, value: float):
