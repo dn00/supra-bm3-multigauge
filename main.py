@@ -359,7 +359,7 @@ class BM3:
         print('mapswwww')
         print('mapswwww')
         print('mapswwww')
-        self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
+        self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": str(map)}))
         
     def send_live_adjust_burble(self, value: float):
         if not self.custom_rom:
