@@ -237,7 +237,7 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
         self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body={})
-        self.send_map_switch()
+        self.send_map_switch(0)
         # self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
     def connect(self):
