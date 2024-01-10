@@ -388,7 +388,7 @@ class BM3:
         
     def start(self):
         BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=self.connect)
-        # BM3ConnectionThread.start()
+        BM3ConnectionThread.start()
         
     def update_thread(self):
         BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
