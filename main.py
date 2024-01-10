@@ -194,6 +194,7 @@ class BM3:
     
     def handle_ids(self, message):
         data = json.loads(message)
+        print(data)
         if data:
             self.custom_rom = data.get('crom', False)
     
