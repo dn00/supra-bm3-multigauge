@@ -624,8 +624,12 @@ class Gauge1Screen(Screen):
         
 class StartScreen(Screen):
     def on_kv_post(self, base_widget):
+        app = App.get_running_app()
+        app.rpm_zero_time = None
+        app.start_bm3_agent()
+        BM3().start()
+        BM3().update_thread()
         self.manager.current = 'gauge1'
-
         return super().on_kv_post(base_widget)
     
     def transition_to_main_app(self):
