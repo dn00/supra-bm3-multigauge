@@ -59,6 +59,7 @@ class DESTINATIONS:
     CAR_VIN = '/user/queue/vin'
     CAR_DASH_DATA = '/queue/dashdata'
     MAP_SWITCHED = '/user/queue/mapsw'
+    IDS = '/user/queue/ids'
     ID = '/user/queue/id'
     RBURBLE = '/user/queue/rburble'
     CAR_STATUS = 'car_status'
@@ -86,7 +87,7 @@ class MyListener(stomp.ConnectionListener):
                 self.callback(DESTINATIONS.CAR_DASH_DATA, frame.body)
             elif frame.headers['destination'] == DESTINATIONS.MAP_SWITCHED:
                 self.callback(DESTINATIONS.MAP_SWITCHED, frame.body)
-            elif frame.headers['destination'] == DESTINATIONS.ID:
+            elif frame.headers['destination'] == DESTINATIONS.ID or frame.headers['destination'] == DESTINATIONS.IDS:
                 self.callback(DESTINATIONS.ID, frame.body)
             elif frame.headers['destination'] == DESTINATIONS.RBURBLE:
                 self.callback(DESTINATIONS.RBURBLE, frame.body)
@@ -175,7 +176,7 @@ class BM3:
             self.handle_car_data(message)
         elif type == DESTINATIONS.MAP_SWITCHED:
             self.handle_map_switched(message)
-        elif type == DESTINATIONS.ID:
+        elif type == DESTINATIONS.ID or type == DESTINATIONS.IDS:
             self.handle_ids(message)
         elif type == DESTINATIONS.RBURBLE:
             self.handle_rburble(message)
@@ -252,7 +253,8 @@ class BM3:
     
     def subscribe_to_queues(self):
         self.Connection.subscribe(destination='/user/queue/version', id=1)
-        self.Connection.subscribe(destination='/user/queue/id', id=2)
+        self.Connection.subscribe(destination='/user/queue/ids', id=2)
+        self.Connection.subscribe(destination='/user/queue/id', id=3)
         self.Connection.subscribe(destination='/user/queue/vin', id=7)
         self.Connection.subscribe(destination='/user/queue/ram', id=8)
         self.Connection.subscribe(destination='/user/queue/mapsw', id=11)
@@ -263,6 +265,7 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
         self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body={})
+        self.Connection.send(destination='/app/id', headers=self.jwt_headers, body={})
         self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
 
     def connect(self):
