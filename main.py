@@ -236,7 +236,7 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
-        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body=json.dumps(big_payload))
+        self.Connection.send(destination='/app/ids', headers=self.jwt_headers)
         self.send_map_switch()
         # self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
@@ -348,11 +348,17 @@ class BM3:
         #         time.sleep(0.1)  # Adjust the sleep time as needed.
 
     def send_map_switch(self, map: str = ""):
-        if not self.custom_rom:
-            return
+        # if not self.custom_rom:
+        #     return
         if not map == "0" or not map == "3" or map == "":
             # Can't use map 1 or 2 any way
             return
+        print('mapswwww')
+        print('mapswwww')
+        print('mapswwww')
+        print('mapswwww')
+        print('mapswwww')
+        print('mapswwww')
         self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
     def send_live_adjust_burble(self, value: float):
