@@ -623,6 +623,11 @@ class Gauge1Screen(Screen):
         app.rpm_zero_time = None
         
 class StartScreen(Screen):
+    def on_kv_post(self, base_widget):
+        self.manager.current = 'gauge1'
+
+        return super().on_kv_post(base_widget)
+    
     def transition_to_main_app(self):
         print("Starting auxiliary apps and initializing the main app...")
         app = App.get_running_app()
