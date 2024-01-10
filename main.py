@@ -235,8 +235,8 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
-        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body={})
-        self.send_map_switch(4)
+        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body=json.dumps(big_payload))
+        self.send_map_switch()
         # self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
         
     def connect(self):
@@ -347,18 +347,12 @@ class BM3:
         #         time.sleep(0.1)  # Adjust the sleep time as needed.
 
     def send_map_switch(self, map: str = ""):
-        # if not self.custom_rom:
-        #     return
-        # if not map == "0" or not map == "3" or map == "":
-        #     # Can't use map 1 or 2 any way
-        #     return
-        print('mapswwww')
-        print('mapswwww')
-        print('mapswwww')
-        print('mapswwww')
-        print('mapswwww')
-        print('mapswwww')
-        self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": str(map)}))
+        if not self.custom_rom:
+            return
+        if not map == "0" or not map == "3" or map == "":
+            # Can't use map 1 or 2 any way
+            return
+        self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
     def send_live_adjust_burble(self, value: float):
         if not self.custom_rom:
@@ -394,7 +388,7 @@ class BM3:
         
     def start(self):
         BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=self.connect)
-        BM3ConnectionThread.start()
+        # BM3ConnectionThread.start()
         
     def update_thread(self):
         BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
@@ -630,12 +624,8 @@ class Gauge1Screen(Screen):
         
 class StartScreen(Screen):
     def on_kv_post(self, base_widget):
-        app = App.get_running_app()
-        app.rpm_zero_time = None
-        app.start_bm3_agent()
-        BM3().start()
-        BM3().update_thread()
         self.manager.current = 'gauge1'
+
         return super().on_kv_post(base_widget)
     
     def transition_to_main_app(self):
