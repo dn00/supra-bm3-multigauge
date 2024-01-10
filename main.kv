@@ -187,13 +187,13 @@ BoxLayout:
                     width: 480
                     pos_hint: {"top": .955}  # This positions it at the top of the FloatLayout
                     padding: 6,6,6,6
-                    StatusChip:
-                        size_hint_x: None
-                        color: 0, 0, 0, 1
-                        chip_text: "Wifi"
-                        failed_color: 0.5, 0.5, 0.5, 1
-                        failed: len(app.ssid) == 0
-                        active: False
+                    # StatusChip:
+                    #     size_hint_x: None
+                    #     color: 0, 0, 0, 1
+                    #     chip_text: "Wifi"
+                    #     failed_color: 0.5, 0.5, 0.5, 1
+                    #     failed: len(app.ssid) == 0
+                    #     active: False
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
@@ -223,6 +223,12 @@ BoxLayout:
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
+                        chip_text: "BURB"
+                        failed_color: 0.5, 0.5, 0.5, 1
+                        failed: not app.BurbleStatus
+                    StatusChip:
+                        size_hint_x: None
+                        color: 0, 0, 0, 1
                         chip_text: "LETS GO"
                         failed: not app.LETS_FUCKING_GO
                 BottomBar:
@@ -230,7 +236,7 @@ BoxLayout:
                     height: 100
                     CustomSlider:
                         id: "burble_slider"
-                        value: app.LiveAdjustBurbleAggValue
+                        value: app.BurbleAgg
                         step: 0.5
                         disabled: not app.CustomRom
                         # on_valueapp.dispatch_send_live_adjust_burble(*args)

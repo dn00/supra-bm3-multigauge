@@ -60,6 +60,7 @@ class DESTINATIONS:
     CAR_DASH_DATA = '/queue/dashdata'
     MAP_SWITCHED = '/user/queue/mapsw'
     ID = '/user/queue/id'
+    RBURBLE = '/user/queue/rburble'
     CAR_STATUS = 'car_status'
     DISCONNECTED = 'disconnected'
     CONNECTED = 'connected'
@@ -87,6 +88,8 @@ class MyListener(stomp.ConnectionListener):
                 self.callback(DESTINATIONS.MAP_SWITCHED, frame.body)
             elif frame.headers['destination'] == DESTINATIONS.ID:
                 self.callback(DESTINATIONS.ID, frame.body)
+            elif frame.headers['destination'] == DESTINATIONS.RBURBLE:
+                self.callback(DESTINATIONS.RBURBLE, frame.body)
         # print(f'Message: {headers.destination}, {message}')
         # if self.callback:
         #     self.callback(headers, message)
@@ -139,8 +142,14 @@ class BM3:
     
     Listener = None
     car_data = None
+    
     current_map = "-1"
     custom_rom = False
+    current_burble_enabled = False
+    current_burble_agg_value = -1.0
+    current_burble_dur_value = -1.0
+    current_burble_status = False
+    
     
     last_car_data_received = time.time() + 1
     connect_headers = {
@@ -168,6 +177,8 @@ class BM3:
             self.handle_map_switched(message)
         elif type == DESTINATIONS.ID:
             self.handle_ids(message)
+        elif type == DESTINATIONS.RBURBLE:
+            self.handle_rburble(message)
         elif type == DESTINATIONS.CONNECTED:
             print('Connected to the server successfully.')
             self.Connected = True
@@ -197,6 +208,10 @@ class BM3:
         if data:
             self.custom_rom = data.get('crom', False)
             # self.current_map = data.get('msid', "-1")
+        if not self.current_map:
+            self.send_map_switch()
+        if not self.current_burble_enabled or not self.current_burble_agg_value or not self.current_burble_dur_value:
+            self.send_for_rburble()
     
     def handle_car_data(self, payload):
         result_dict = {}
@@ -215,6 +230,14 @@ class BM3:
             slot = data.get('slot', "-1")
             if len(slot) > 0:
                 self.current_map = data.get('slot', "-1")
+    
+    def handle_rburble(self, message):
+        data = json.loads(message)
+        if data:
+            self.current_burble_enabled = data.get('enabled', False)
+            self.current_burble_agg_value = float(data.get('agg', -1.0))
+            self.current_burble_dur_value = float(data.get('dur', -1.0))
+            self.current_burble_status = data.get('status', False)
         
     def get_car_data(self, car_diag_object: CarDiagData):
         if self.car_data:
@@ -233,6 +256,7 @@ class BM3:
         self.Connection.subscribe(destination='/user/queue/vin', id=7)
         self.Connection.subscribe(destination='/user/queue/ram', id=8)
         self.Connection.subscribe(destination='/user/queue/mapsw', id=11)
+        self.Connection.subscribe(destination='/user/queue/rburble', id=15)
 
 
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
@@ -240,9 +264,7 @@ class BM3:
         
         self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body=json.dumps(big_payload))
         self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
-        self.send_map_switch()
 
-        
     def connect(self):
             if self.Connecting:
                 # If already attempting to connect, do not start another attempt.
@@ -358,6 +380,9 @@ class BM3:
         #     return
         self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
+    def send_for_rburble(self):
+        self.Connection.send(destination='/app/rburble', headers=self.jwt_headers, body={})    
+    
     def send_live_adjust_burble(self, value: float):
         if not self.custom_rom:
             return
@@ -375,6 +400,7 @@ class BM3:
 
         self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
         self.send_map_switch()
+        self.send_for_rburble()
             
 
     def send_for_vin(self):
@@ -997,6 +1023,8 @@ class CustomSlider(MDSlider):
             # Change value to the nearest single precision .5
             if self.value < 0:
                 self.value = -1
+                
+            print(self.value)
             bm3.send_live_adjust_burble(self.value)
        
         return super().on_touch_up(touch)
@@ -1035,6 +1063,8 @@ class MainApp(MDApp):
     # Vehicle
     CurrentMap = StringProperty("-1")
     CustomRom = BooleanProperty(False)
+    BurbleAgg = NumericProperty(0)
+    BurbleStatus = BooleanProperty(False)
     
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
@@ -1064,8 +1094,6 @@ class MainApp(MDApp):
     
     LETS_FUCKING_GO = BooleanProperty(False)
     rpm_zero_time = None
-    
-    LiveAdjustBurbleAggValue = NumericProperty(0)
 
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
@@ -1107,7 +1135,9 @@ class MainApp(MDApp):
         
         self.CurrentMap = bm3.current_map
         self.CustomRom = bm3.custom_rom
-
+        self.BurbleAgg = bm3.current_burble_agg_value
+        self.BurbleStatus = bm3.current_burble_status
+        
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
