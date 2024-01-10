@@ -350,9 +350,9 @@ class BM3:
     def send_map_switch(self, map: str = ""):
         # if not self.custom_rom:
         #     return
-        if not map == "0" or not map == "3" or map == "":
-            # Can't use map 1 or 2 any way
-            return
+        # if not map == "0" or not map == "3" or map == "":
+        #     # Can't use map 1 or 2 any way
+        #     return
         print('mapswwww')
         print('mapswwww')
         print('mapswwww')
