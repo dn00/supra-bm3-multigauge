@@ -213,13 +213,13 @@ BoxLayout:
                         failed_color: 0.5, 0.5, 0.5, 1
                         failed: not app.CustomRom
                         # active: True
-                    StatusChip:
-                        size_hint_x: None
-                        color: 0, 0, 0, 1
-                        chip_text: "MAP " + app.CurrentMap if app.CurrentMap != "-1" else "MAP"
-                        failed_color: 0.5, 0.5, 0.5, 1
-                        failed: app.CurrentMap == "-1"
-                        # active: True
+                    # StatusChip:
+                    #     size_hint_x: None
+                    #     color: 0, 0, 0, 1
+                    #     chip_text: "MAP " + app.CurrentMap if app.CurrentMap != "-1" else "MAP"
+                    #     failed_color: 0.5, 0.5, 0.5, 1
+                    #     failed: app.CurrentMap == "-1"
+                    #     # active: True
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
@@ -234,11 +234,15 @@ BoxLayout:
                 BottomBar:
                     width: 480
                     height: 100
+                    padding: 6,6,6,6
                     CustomSlider:
                         id: "burble_slider"
                         value: app.BurbleAgg
                         step: 0.5
-                        # disabled: not app.CustomRom
+                    StatusChipButton:
+                        chip_text: "MAP " + app.CurrentMap if app.CurrentMap != "-1" else "MAP"
+                        width: 42
+                        size_hint: 0.4, 0.5
                         # on_valueapp.dispatch_send_live_adjust_burble(*args)
                         # pos: 10, 10
                         # min: -1

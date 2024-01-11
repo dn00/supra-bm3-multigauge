@@ -5,6 +5,7 @@ from stomp.adapter.ws import WSTransport
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.image import Image
+from kivymd.uix.button.button import MDFlatButton
 from kivymd.uix.chip import MDChip
 from kivy.metrics import dp
 from kivy.uix.floatlayout import FloatLayout
@@ -998,6 +999,8 @@ class HorizontalSegmentedProgressBar(BoxLayout):
         return self.empty_color
 
 class CustomSlider(MDSlider):
+    # ids = ObjectProperty()
+    sending = False
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.pos = 10, 10
@@ -1012,26 +1015,75 @@ class CustomSlider(MDSlider):
         self.color = "#90D5EC"  # Soft cyan
         self.thumb_color_active = "#FAD0C4"  # Peach
         self.thumb_color_inactive = "#FAD0C4"  # Peach
-        
-    def on_touch_up(self, touch):
-        is_touched = False
-        for item in touch.grab_list:
-            # Check if the item is a weakref instance
-            if isinstance(item, weakref.ref):
-                # Dereference and check if it's CustomSlider
-                if isinstance(item(), CustomSlider):
-                    is_touched = True
-        if is_touched:
-            bm3 = BM3()
-            # Change value to the nearest single precision .5
-            if self.value < 0:
-                self.value = -1
-                
-            print(self.value)
-            bm3.send_live_adjust_burble(self.value)
-       
-        return super().on_touch_up(touch)
 
+    def on_touch_up(self, touch):
+        # print(self.ids)
+
+        is_touched = False
+        if not self.sending:
+            self.sending = True
+            for item in touch.grab_list:
+                # Check if the item is a weakref instance
+                if isinstance(item, weakref.ref):
+                    # Dereference and check if it's CustomSlider
+                    if isinstance(item(), CustomSlider):
+                        is_touched = True
+            if is_touched:
+                bm3 = BM3()
+                # Change value to the nearest single precision .5
+                if self.value < 0:
+                    self.value = -1
+                    
+                print(self.value)
+                bm3.send_live_adjust_burble(self.value)
+                
+        Clock.schedule_once(self.reset_sending, 0.5)
+        return super().on_touch_up(touch)
+    
+    def reset_sending(self, *args):
+        self.sending = False
+
+class StatusChipButton(MDFlatButton):
+    chip_text = StringProperty("Map")
+    menu_items = ListProperty([{"text": f"Map {i}"} for i in range(4)])
+    theme_text_color = "Custom"
+    text_color = ListProperty([1, 1, 1, 1])
+    def __init__(self, **kwargs):
+        super(StatusChipButton, self).__init__(**kwargs)
+        self.text = self.chip_text
+        self.font_size = '18sp'  # Increased font size
+        self.pos_hint = {"center_x": 0.5, "center_y": 0.5}
+        self.md_bg_color = [0, 0, 0, 1]  # Customize as needed
+        # Set up the dropdown menu
+        self.menu = MDDropdownMenu(
+            caller=self,
+            items=self.menu_items,
+            width_mult=4,
+        )
+        self.md_bg_color = [0.0, 0.5, 1.0, 1]
+        # self.add_widget(self.label)
+        self.pos_hint = {"x": 0.01, "center_y": 0.5}
+        
+        # self.md_bg_color = [0,0, 0, 1]  # Fully transparent background
+        # self.line_color = [0.0, 0.75, 1.0, 1]  # Green line color
+        # self.width = dp(42)  # Starting width, adjust as needed
+        # self.line_width = 1
+        # self.check = False  # Set to False if you don't want the check icon
+        self.padding = [dp(12), dp(12), dp(12), dp(12)]  # Horizontal padding
+        self.menu.bind(on_release=self.menu_callback)
+        self.on_release = self.open_menu
+
+    def on_chip_text(self, instance, value):
+        self.text = value
+
+    def open_menu(self):
+        self.menu.open()
+
+    def menu_callback(self, instance_menu, instance_menu_item):
+        # Define actions here when a menu item is selected
+        pass
+
+    # Include your animation methods and other necessary methods from StatusChip
 
 
 class MainApp(MDApp):
