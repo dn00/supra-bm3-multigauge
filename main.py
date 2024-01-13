@@ -141,6 +141,7 @@ class BM3:
     Connected = False
     Connecting = False
     Receiving_Data = False
+    isRequestingAdjustment = False
     
     Listener = None
     car_data = None
@@ -209,11 +210,6 @@ class BM3:
         data = json.loads(message)
         if data:
             self.custom_rom = data.get('crom', False)
-            # self.current_map = data.get('msid', "-1")
-        if not self.current_map:
-            self.send_map_switch()
-        if not self.current_burble_enabled or not self.current_burble_agg_value or not self.current_burble_dur_value:
-            self.send_for_rburble()
     
     def handle_car_data(self, payload):
         result_dict = {}
@@ -265,9 +261,8 @@ class BM3:
         self.Connection.subscribe(destination='/queue/dashdata', id=4)
         self.Connection.subscribe(destination='/queue/dashstatus', id=5)
         
-        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body={})
-        self.Connection.send(destination='/app/id', headers=self.jwt_headers, body={})
         self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
+        
 
     def connect(self):
             if self.Connecting:
@@ -341,7 +336,7 @@ class BM3:
             time_since_last_data = time.time() - self.last_car_data_received
             if time_since_last_data > 5:
                 self.Receiving_Data = False
-            if self.Connected:
+            if self.Connected and not self.isRequestingAdjustment:
                 with self.request_data_lock:
                     try:
                         self.Connection.send(destination='/app/startdash', body=json.dumps(big_payload))
@@ -375,8 +370,19 @@ class BM3:
         #     else:
         #         backoff_time = 0.1
         #         time.sleep(0.1)  # Adjust the sleep time as needed.
-
+        
+    def send_for_ids(self):
+        if not self.Connected: return
+        self.Connection.send(destination='/app/ids', headers=self.jwt_headers, body={})
+        self.Connection.send(destination='/app/id', headers=self.jwt_headers, body={})
+        
+    def send_for_rburble(self):
+        if not self.Connected: return
+        
+        self.Connection.send(destination='/app/rburble', headers=self.jwt_headers, body={})
+        
     def send_map_switch(self, map: str = ""):
+        if not self.Connected: return
         if not self.custom_rom:
             return
         # if not map == "0" or not map == "3" or map == "":
@@ -384,15 +390,13 @@ class BM3:
         #     return
         self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
-    def send_for_rburble(self):
-        self.Connection.send(destination='/app/rburble', headers=self.jwt_headers, body={})    
-    
+     
     def send_live_adjust_burble(self, value: float):
-        if not self.custom_rom:
+        if not self.custom_rom or not self.Connected:
             return
         if not -1 <= value <= 12:
             return
-                
+        self.isRequestingAdjustment = True
         payload = {
             "enabled": True,
             "agg": value,
@@ -401,13 +405,23 @@ class BM3:
         if 0 > value:
             payload['agg'] = 0
             payload['enabled'] = False
-
-        self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
-        self.send_map_switch()
-        self.send_for_rburble()
             
+        while True:
+            time_since_last_data = time.time() - self.last_car_data_received
+            if time_since_last_data > 1:
+                # self.send_map_switch(self.current_map if self.current_map != "-1" else "")
+                # time.sleep(1)
+                self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
+                self.current_burble_agg_value = -1
+                self.send_map_switch(self.current_map if self.current_map != "-1" else "")
+                self.current_map = "-1"
+                break
+        
+        self.isRequestingAdjustment = False
 
     def send_for_vin(self):
+        if not self.Connected: return
+
         # self.Connection.send_frame("SEND\napp-version:1.00.000-1\ndestination:/app/vin\n\n\u0000")
         self.Connection.send(destination='/app/vin', headers=self.app_version_headers, body="")
 
@@ -657,6 +671,10 @@ class Gauge1Screen(Screen):
         app.rpm_zero_time = None
         
 class StartScreen(Screen):
+    # def on_enter(self, *args):
+    #     app = App.get_running_app()
+    #     app.stop()
+    #     return super().on_enter(*args)
     def transition_to_main_app(self):
         print("Starting auxiliary apps and initializing the main app...")
         app = App.get_running_app()
@@ -664,6 +682,7 @@ class StartScreen(Screen):
         app.start_bm3_agent()
         BM3().start()
         BM3().update_thread()
+        app.start()
         self.manager.current = 'gauge1'
 
 class InfoScreen(Screen):
@@ -1035,7 +1054,8 @@ class CustomSlider(MDSlider):
                     self.value = -1
                     
                 print(self.value)
-                bm3.send_live_adjust_burble(self.value)
+                Clock.schedule_once(lambda dt: bm3.send_live_adjust_burble(self.value))
+                
                 
         Clock.schedule_once(self.reset_sending, 0.5)
         return super().on_touch_up(touch)
@@ -1099,10 +1119,18 @@ class MainApp(MDApp):
         # self.bm3 = BM3()
         # BM3ConnectionThread = threading.Thread(name='bm3_connection_thread', target=BM3().connect)
         # BM3ConnectionThread.start()
+        pass
+        
+    def start(self):
+        self.root.ids.sm.current = 'gauge1'
         self.root.ids.sm.transition = FadeTransition()
         Clock.schedule_interval(self.update_vars, 1)
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
+        
+    # def stop(self):
+    #     Clock.unschedule(self.update_vars)
+    #     Clock.unschedule(self.update_vehicle_data)
 
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
@@ -1123,7 +1151,7 @@ class MainApp(MDApp):
     
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
-    # TEST_RPM = 200
+    TEST_RPM = 200
     CoolantTemp = NumericProperty(0)
     OilTemp = NumericProperty(0)
     IntakeAirTemp = NumericProperty(0)
@@ -1163,14 +1191,17 @@ class MainApp(MDApp):
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
-        self.RPM = bm3.get_car_data(Car.Data.RPM)
-           
-        # self.RPM += self.TEST_RPM
-        # if self.RPM > 7000:
-        #     self.TEST_RPM = -100
-        # if self.RPM < 0:
-        #     self.TEST_RPM = 100
         
+        # if DEVELOPER_MODE == 1:
+        #     self.RPM += self.TEST_RPM
+        #     if self.RPM > 7000:
+        #         self.TEST_RPM = -100
+        #     if self.RPM < 0:
+        #         self.TEST_RPM = 100
+        # else:
+        #     self.RPM = bm3.get_car_data(Car.Data.RPM)
+        self.RPM = bm3.get_car_data(Car.Data.RPM)
+            
         if self.RPM == 0:
             # If the timer is not already set, set it
             if not self.rpm_zero_time:
@@ -1185,18 +1216,29 @@ class MainApp(MDApp):
         else:
             # If RPM is not zero, reset the timer
             self.rpm_zero_time = None
-        if not bm3.Connected or self.BM3AgentPID == -1:
-            return
         
-        self.CurrentMap = bm3.current_map
-        self.CustomRom = bm3.custom_rom
-        self.BurbleAgg = bm3.current_burble_agg_value
-        self.BurbleStatus = bm3.current_burble_status
+        if DEVELOPER_MODE == 0:
+            if not bm3.Connected or self.BM3AgentPID == -1:
+                return
+        if (bm3.current_map == "-1"):
+            Clock.schedule_once(self.update_map, 2)
+        else:
+            self.CurrentMap = bm3.current_map
+        
+        if (bm3.custom_rom == False):
+            Clock.schedule_once(self.update_ids, 2)
+        else:
+            self.CustomRom = bm3.custom_rom
+        
+        if (bm3.current_burble_agg_value == -1):
+            Clock.schedule_once(self.update_rburble, 2)
+        else: 
+            self.BurbleAgg = bm3.current_burble_agg_value
+            self.BurbleStatus = bm3.current_burble_status
         
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
-
         
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
@@ -1206,6 +1248,7 @@ class MainApp(MDApp):
         self.LTFT = bm3.get_car_data(Car.Data.LTFT)
         self.AcceleratorPosition = bm3.get_car_data(Car.Data.AcceleratorPosition)
         self.ThrottleAngle = bm3.get_car_data(Car.Data.ThrottleAngle)
+   
         self.VIN = Car.Data.VIN
         
         self.LETS_FUCKING_GO = self.OilTemp > 200 and self.CoolantTemp > 200 and 7 <= self.BM3EthanolPercent <= 50 and self.IntakeAirTemp <= 180
@@ -1276,6 +1319,21 @@ class MainApp(MDApp):
             os.kill(self.BM3AgentPID, signal.SIGTERM)
 
             self.BM3AgentPID = -1
+            
+    def update_ids(self, *args):
+        bm3 = BM3()
+        bm3.send_for_ids()
+        Clock.unschedule(self.update_ids)
+    
+    def update_rburble(self, *args):
+        bm3 = BM3()
+        bm3.send_for_rburble()
+        Clock.unschedule(self.update_rburble)
+    
+    def update_map(self, *args):
+        bm3 = BM3()
+        bm3.send_map_switch()
+        Clock.unschedule(self.update_map)
             
 if __name__ =='__main__':
     MainApp().run()
