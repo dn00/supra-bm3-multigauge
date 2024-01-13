@@ -194,8 +194,8 @@ class BM3:
             if self.Connected:  
                 self.Connected = False
                 self.Connection = None
-                time.sleep(2) 
-                self.start()
+                # time.sleep(2) 
+                # self.start()
 
         elif type == DESTINATIONS.CONNECTION_ERROR:
             print('Connection error encountered.')
@@ -203,8 +203,8 @@ class BM3:
             if self.Connected:
                 self.Connected = False
                 self.Connection = None
-                time.sleep(2)
-                self.start()
+                # time.sleep(2)
+                # self.start()
     
     def handle_ids(self, message):
         data = json.loads(message)
@@ -333,8 +333,13 @@ class BM3:
     
     def request_car_data(self):
         while True:
+            if not self.Receiving_Data:
+                App.get_running_app().kill_bm3_agent()
+                time.sleep(2)
+                App.get_running_app().start_bm3_agent()
+                self.connect()
             time_since_last_data = time.time() - self.last_car_data_received
-            if time_since_last_data > 5:
+            if time_since_last_data > 10:
                 self.Receiving_Data = False
             if self.Connected and not self.isRequestingAdjustment:
                 with self.request_data_lock:
@@ -397,6 +402,7 @@ class BM3:
         if not -1 <= value <= 12:
             return
         self.isRequestingAdjustment = True
+        self.last_car_data_received = time.time()
         payload = {
             "enabled": True,
             "agg": value,
@@ -679,8 +685,8 @@ class StartScreen(Screen):
         print("Starting auxiliary apps and initializing the main app...")
         app = App.get_running_app()
         app.rpm_zero_time = None
-        app.start_bm3_agent()
-        BM3().start()
+        # app.start_bm3_agent()
+        # BM3().start()
         BM3().update_thread()
         app.start()
         self.manager.current = 'gauge1'
@@ -1219,9 +1225,8 @@ class MainApp(MDApp):
             # If RPM is not zero, reset the timer
             self.rpm_zero_time = None
         
-        if DEVELOPER_MODE == 0:
-            if not bm3.Connected or self.BM3AgentPID == -1:
-                return
+        if not bm3.Connected or self.BM3AgentPID == -1 or not bm3.Receiving_Data:
+            return
         
         if (bm3.current_map == "-1"):
             self.CurrentMap = bm3.current_map
