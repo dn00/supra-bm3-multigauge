@@ -174,21 +174,25 @@ wss.on('connection', function connection(ws) {
 
         stompClient.send(parsedFrame.destination, parsedFrame.headers, parsedFrame.body)
         
-        // if (TEST && parsedFrame.destination === '/app/startdash') {
-        //   // send /queue/dashdata for 2 seconds every .1 seconds
-        //   console.log("SENT Dash")
-        //   const test_interval = setInterval(() => {
-        //     const messageFrame = constructStompFrame('MESSAGE', {
-        //       destination: '/queue/dashdata',
-        //     }, testPayload);
-        //     ws.send(messageFrame);
-        //   }, 200);
+        if (TEST && parsedFrame.destination === '/app/startdash') {
+          // send /queue/dashdata for 2 seconds every .1 seconds
+            // const messageFrame = constructStompFrame('MESSAGE', {
+            //   destination: '/queue/dashdata',
+            // }, testPayload);
+            // ws.send(messageFrame);
+          // console.log("SENT Dash")
+          // const test_interval = setInterval(() => {
+          //   const messageFrame = constructStompFrame('MESSAGE', {
+          //     destination: '/queue/dashdata',
+          //   }, testPayload);
+          //   ws.send(messageFrame);
+          // }, 200);
 
-        //   setTimeout(() => {
-        //     clearInterval(test_interval);
-        //   }, 2000);
+          // setTimeout(() => {
+          //   clearInterval(test_interval);
+          // }, 2000);
 
-        // }
+        }
       } else if (command === 'NEXT' && stompClient) {
         console.log('CONTINUE frame received from Python app. Ignoring it.')
       

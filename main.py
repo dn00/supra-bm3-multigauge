@@ -133,6 +133,7 @@ class BM3:
             cls._instance = super(BM3, cls).__new__(cls, *args, **kwargs)
         return cls._instance
     
+    BM3UpdateThread = None
     request_data_lock = threading.Lock()  # Lock for the request_car_data method
     URI = "localhost"
     WS = None
@@ -320,6 +321,52 @@ class BM3:
                 finally:
                     self.Connecting = False
                     time.sleep(backoff_time)  # Backoff before retrying
+                    
+    def connect_2(self):
+            if self.Connecting:
+                # If already attempting to connect, do not start another attempt.
+                print("Connection attempt is already in progress.")
+                return
+            try: 
+                self.Connecting = True
+                header = {
+                                "Accept": "*/*",
+                                        "Accept-Encoding": "gzip, deflate, br",
+                                        "Accept-Language": "en-US,en;q=0.5",
+                                        "Cache-Control": "no-cache",
+                                        "Connection": "keep-alive, Upgrade",
+                                        "Host": "172.29.96.2:8080",
+                                        "Origin": "http://172.29.96.1:8181",
+                                        "Pragma": "no-cache",
+                                        "Sec-Fetch-Dest": "empty",
+                                        "Sec-Fetch-Mode": "websocket",
+                                        "Sec-Fetch-Site": "same-site",
+                                        # "Sec-WebSocket-Extensions": "permessage-deflate",
+                                        "Sec-WebSocket-Version": "13",
+                                        # "Upgrade": "websocket",
+                                        # "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+                                                    
+                    }
+                        
+
+                self.Listener = MyListener(self.Connection, callback=self.proxy_callback)
+                            
+                WS = WSTransport([(self.URI, 8080)])
+                self.Connection = stomp.Connection([(self.URI, 8080)], auto_content_length=True, )
+                
+                self.Connection.transport = WS
+                socket = websocket.create_connection(
+                                            f"ws://{self.URI}:8081/ws", header=header)
+                self.Connection.transport.socket = socket
+                    
+                self.Connection.set_listener('', self.Listener)
+                self.Connection.connect(headers=self.connect_headers, wait=True, with_connect_command=True)
+                self.Connecting = False
+            except Exception as e:
+                print(f"Connection failed: {e}")
+
+            finally:
+                self.Connecting = False
 
                     
     def disconnect(self):
@@ -334,10 +381,14 @@ class BM3:
     def request_car_data(self):
         while True:
             if not self.Receiving_Data:
-                App.get_running_app().kill_bm3_agent()
-                time.sleep(2)
-                App.get_running_app().start_bm3_agent()
-                self.connect()
+                try:
+                    # print("Restarting BM3 agent...")
+                    # App.get_running_app().kill_bm3_agent()
+                    # time.sleep(2)
+                    # App.get_running_app().start_bm3_agent()
+                    self.connect()
+                except Exception as e:
+                    print(f"Error restarting BM3 agent: {e}")
             time_since_last_data = time.time() - self.last_car_data_received
             if time_since_last_data > 10:
                 self.Receiving_Data = False
@@ -411,10 +462,10 @@ class BM3:
         if 0 > value:
             payload['agg'] = 0
             payload['enabled'] = False
-            
+        
         while True:
             time_since_last_data = time.time() - self.last_car_data_received
-            if time_since_last_data > 1:
+            if time_since_last_data > 10:
                 # self.send_map_switch(self.current_map if self.current_map != "-1" else "")
                 # time.sleep(1)
                 self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
@@ -445,8 +496,8 @@ class BM3:
         BM3ConnectionThread.start()
         
     def update_thread(self):
-        BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
-        BM3UpdateThread.start()
+        self.BM3UpdateThread = threading.Thread(name='bm3_update_thread', target=self.request_car_data)
+        self.BM3UpdateThread.start()
        
 class Car:
     class Data:
@@ -677,15 +728,18 @@ class Gauge1Screen(Screen):
         app.rpm_zero_time = None
         
 class StartScreen(Screen):
-    # def on_enter(self, *args):
-    #     app = App.get_running_app()
-    #     app.stop()
-    #     return super().on_enter(*args)
+    def on_enter(self, *args):
+        app = App.get_running_app()
+        app.stop()
+        # if BM3().BM3UpdateThread:
+        #     # stop thread
+        #     BM3().BM3UpdateThread.join()
+        return super().on_enter(*args)
     def transition_to_main_app(self):
         print("Starting auxiliary apps and initializing the main app...")
         app = App.get_running_app()
         app.rpm_zero_time = None
-        # app.start_bm3_agent()
+        app.start_bm3_agent()
         # BM3().start()
         BM3().update_thread()
         app.start()
@@ -1134,9 +1188,10 @@ class MainApp(MDApp):
         # Clock.schedule_interval(bm3.send_for_vin, 5)
         Clock.schedule_interval(self.update_vehicle_data, .1)
         
-    # def stop(self):
-    #     Clock.unschedule(self.update_vars)
-    #     Clock.unschedule(self.update_vehicle_data)
+    def stop(self):
+        Clock.unschedule(self.update_vars)
+        Clock.unschedule(self.update_vehicle_data)
+        self.kill_bm3_agent()
 
     TempUnit = StringProperty()
     # SpeedUnit = StringProperty()
@@ -1198,7 +1253,6 @@ class MainApp(MDApp):
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
-        
         # if DEVELOPER_MODE == 1:
         #     self.RPM += self.TEST_RPM
         #     if self.RPM > 7000:
@@ -1216,7 +1270,7 @@ class MainApp(MDApp):
                 self.rpm_zero_time = time.time()
             else:
                 # Check if RPM has been zero for more than 10 seconds
-                if time.time() - self.rpm_zero_time > 20:
+                if time.time() - self.rpm_zero_time > 5:
                     self.kill_bm3_agent()
                     self.rpm_zero_time = None  # Reset the timer
                     self.root.ids.sm.current = 'start'
@@ -1329,7 +1383,6 @@ class MainApp(MDApp):
     def kill_bm3_agent(self):
         if self.BM3AgentPID != -1:
             os.kill(self.BM3AgentPID, signal.SIGTERM)
-
             self.BM3AgentPID = -1
             
     def update_ids(self, *args):
@@ -1346,6 +1399,7 @@ class MainApp(MDApp):
         bm3 = BM3()
         bm3.send_map_switch()
         Clock.unschedule(self.update_map)
+    
             
 if __name__ =='__main__':
     MainApp().run()
