@@ -1174,6 +1174,7 @@ class MainApp(MDApp):
     BM3AgentPID = NumericProperty(-1)
     
     ReceivingData = BooleanProperty(False)
+    isRequestingAdjustment = BooleanProperty(False)
     
     LETS_FUCKING_GO = BooleanProperty(False)
     rpm_zero_time = None
@@ -1201,8 +1202,9 @@ class MainApp(MDApp):
         # else:
         #     self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.RPM = bm3.get_car_data(Car.Data.RPM)
-            
-        if self.RPM == 0:
+        self.isRequestingAdjustment = bm3.isRequestingAdjustment
+        
+        if self.RPM == 0 and not bm3.isRequestingAdjustment:
             # If the timer is not already set, set it
             if not self.rpm_zero_time:
                 self.rpm_zero_time = time.time()
@@ -1220,17 +1222,22 @@ class MainApp(MDApp):
         if DEVELOPER_MODE == 0:
             if not bm3.Connected or self.BM3AgentPID == -1:
                 return
+        
         if (bm3.current_map == "-1"):
+            self.CurrentMap = bm3.current_map
             Clock.schedule_once(self.update_map, 2)
         else:
             self.CurrentMap = bm3.current_map
         
         if (bm3.custom_rom == False):
+            self.CustomRom = bm3.custom_rom
             Clock.schedule_once(self.update_ids, 2)
         else:
             self.CustomRom = bm3.custom_rom
         
         if (bm3.current_burble_agg_value == -1):
+            self.BurbleAgg = bm3.current_burble_agg_value
+            self.BurbleStatus = bm3.current_burble_status
             Clock.schedule_once(self.update_rburble, 2)
         else: 
             self.BurbleAgg = bm3.current_burble_agg_value
