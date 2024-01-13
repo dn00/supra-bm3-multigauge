@@ -1311,7 +1311,7 @@ class MainApp(MDApp):
         
     def start_bm3_agent(self):
         # Change the current working directory to the script's directory
-        script_directory = os.path.dirname(os.path.abspath(__file__))
+        script_directory = os.path.dirname(os.path.abspath(__name__))
         os.chdir(script_directory)
 
         # Attempt to run the file
