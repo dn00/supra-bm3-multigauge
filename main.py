@@ -195,7 +195,7 @@ class BM3:
                 self.Connected = False
                 self.Connection = None
                 time.sleep(2) 
-                self.connect()
+                self.start()
 
         elif type == DESTINATIONS.CONNECTION_ERROR:
             print('Connection error encountered.')
@@ -204,7 +204,7 @@ class BM3:
                 self.Connected = False
                 self.Connection = None
                 time.sleep(2)
-                self.connect()
+                self.start()
     
     def handle_ids(self, message):
         data = json.loads(message)
