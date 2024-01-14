@@ -267,7 +267,7 @@ class BM3:
 
     def connect(self):
             if self.Connecting:
-                # If already attempting to connect, do not start another attempt.
+                # If already attempting to connect, do not start another attempt.F
                 print("Connection attempt is already in progress.")
                 return
 
@@ -462,12 +462,13 @@ class BM3:
         if 0 > value:
             payload['agg'] = 0
             payload['enabled'] = False
-        
+        self.Connection.send(destination='/app/stopdash', headers=self.jwt_headers, body=json.dumps(payload))
         while True:
             time_since_last_data = time.time() - self.last_car_data_received
             if time_since_last_data > 10:
                 # self.send_map_switch(self.current_map if self.current_map != "-1" else "")
                 # time.sleep(1)
+                
                 self.Connection.send(destination='/app/burble', headers=self.jwt_headers, body=json.dumps(payload))
                 self.current_burble_agg_value = -1
                 self.send_map_switch(self.current_map if self.current_map != "-1" else "")
