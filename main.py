@@ -32,7 +32,7 @@ from kivymd.uix.slider import MDSlider
 import weakref
 import re
 import os
-import signal
+from  histo_gauge import HistoGauge
 GLOBAL_VERSION = "V0.0.1"
 
 DEVELOPER_MODE = 1           # set to 1 to disable all GPIO, temp probe, and obd stuff
@@ -1218,6 +1218,7 @@ class MainApp(MDApp):
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
     TEST_RPM = 200
+    TEST_BOOST = 1
     CoolantTemp = NumericProperty(0)
     OilTemp = NumericProperty(0)
     IntakeAirTemp = NumericProperty(0)
@@ -1266,22 +1267,30 @@ class MainApp(MDApp):
         #         self.TEST_RPM = 100
         # else:
         #     self.RPM = bm3.get_car_data(Car.Data.RPM)
+        # Test boost
+        self.Boost += self.TEST_BOOST
+        if self.Boost > 23:
+            self.TEST_BOOST = -1
+        if self.Boost < 1:
+            self.TEST_BOOST = 1
+        
+        
         self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.isRequestingAdjustment = bm3.isRequestingAdjustment
         
-        if self.RPM == 0 and not bm3.isRequestingAdjustment:
-            # If the timer is not already set, set it
-            if not self.rpm_zero_time:
-                self.rpm_zero_time = time.time()
-            else:
-                if time.time() - self.rpm_zero_time > 20:
-                    self.kill_bm3_agent()
-                    self.rpm_zero_time = None  # Reset the timer
-                    self.root.ids.sm.current = 'start'
-                    return
-        else:
-            # If RPM is not zero, reset the timer
-            self.rpm_zero_time = None
+        # if self.RPM == 0 and not bm3.isRequestingAdjustment:
+        #     # If the timer is not already set, set it
+        #     if not self.rpm_zero_time:
+        #         self.rpm_zero_time = time.time()
+        #     else:
+        #         if time.time() - self.rpm_zero_time > 20:
+        #             self.kill_bm3_agent()
+        #             self.rpm_zero_time = None  # Reset the timer
+        #             self.root.ids.sm.current = 'start'
+        #             return
+        # else:
+        #     # If RPM is not zero, reset the timer
+        #     self.rpm_zero_time = None
         
         if not bm3.Connected or self.BM3AgentPID == -1 or not bm3.Receiving_Data:
             return

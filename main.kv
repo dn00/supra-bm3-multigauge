@@ -56,50 +56,114 @@ BoxLayout:
                     size_hint: (1.01, .032)
                     pos_hint: {'center_x': 0.5, 'center_y': .982}
                     padding: 4, 4, 4, 4
-                VerticalSegmentedProgressBar:
-                    id: gas
+                # VerticalSegmentedProgressBar:
+                #     id: gas
+                #     value: app.AcceleratorPosition
+                #     size_hint: (None, None)
+                #     filled_color: 0.4, 0.8, 0.4, 1  # Trendy Green for gas pedal
+                #     size: (dp(30), dp(150))
+                #     pos_hint: {'center_x': 0.12, 'center_y': 0.75}
+                # VerticalSegmentedProgressBar:
+                #     id: throttle_angle
+                #     value: app.ThrottleAngle
+                #     size_hint: (None, None)
+                #     filled_color: 0.2, 0.2, 0.9, 1  # Trendy Red for brake pedal
+                #     size: (dp(30), dp(150))
+                #     pos_hint: {'center_x': 0.88, 'center_y': 0.75}
+                # CustomGauge:
+                #     label_text: str(app.Ign1Timing) + '°'
+                #     label_font_size: 24
+                #     gauge_image: "data/gauges/S2K_Timing.png"
+                #     gauge_bars: str(app.Ign1Timing_Image)
+                #     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                #     pos: 180, 330
+                #     gauge_size: 240
+                # CustomGauge:
+                #     label_text: str(app.AFR)
+                #     label_font_size: 24
+                #     label_unit_text: "AFR"
+                #     label_as_icon: True
+                #     gauge_image: "data/gauges/S2KOutline_DoubleRed.png"
+                #     gauge_bars: str(app.AFR_Image)
+                #     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                #     pos: -60, 330
+                #     gauge_size: 240
+                # # CustomGauge:
+                # #     label_text: str(app.Boost)
+                # #     label_font_size: 24
+                # #     label_unit_text: "psig"
+                # #     gauge_image: "data/gauges/supra_turbo.png"
+                # #     gauge_bars: str(app.Boost_Image)
+                # #     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                # #     pos: -20, 470
+                # #     gauge_size: 350
+                HistoGauge:
+                    value: app.Boost
+                    unit_text: "psig"
+                    label_text: "BOOOST"
+                    label_size: 28
+                    font_name: GaugeFont
+                    min_value: 0
+                    max_value: 25
+                    # normal_value: 15
+                    time_window: 30
+                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                    pos: 0, 650
+                    size_hint: 1, 0.08
+                HistoGauge:
                     value: app.AcceleratorPosition
-                    size_hint: (None, None)
-                    filled_color: 0.4, 0.8, 0.4, 1  # Trendy Green for gas pedal
-                    size: (dp(30), dp(150))
-                    pos_hint: {'center_x': 0.12, 'center_y': 0.75}
-                VerticalSegmentedProgressBar:
-                    id: throttle_angle
+                    unit_text: "0-100"
+                    label_text: "ACCPDL"
+                    label_size: 28
+                    font_name: GaugeFont
+                    min_value: 0
+                    max_value: 100
+                    # normal_value: 15
+                    time_window: 30
+                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                    pos: 0, 560
+                    size_hint: 1,  0.08
+                HistoGauge:
                     value: app.ThrottleAngle
-                    size_hint: (None, None)
-                    filled_color: 0.2, 0.2, 0.9, 1  # Trendy Red for brake pedal
-                    size: (dp(30), dp(150))
-                    pos_hint: {'center_x': 0.88, 'center_y': 0.75}
-                CustomGauge:
-                    label_text: str(app.Ign1Timing) + '°'
-                    label_font_size: 24
-                    gauge_image: "data/gauges/S2K_Timing.png"
-                    gauge_bars: str(app.Ign1Timing_Image)
-                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: 180, 330
-                    gauge_size: 240
-                CustomGauge:
-                    label_text: str(app.AFR)
-                    label_font_size: 24
-                    label_unit_text: "AFR"
-                    label_as_icon: True
-                    gauge_image: "data/gauges/S2KOutline_DoubleRed.png"
-                    gauge_bars: str(app.AFR_Image)
-                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: -60, 330
-                    gauge_size: 240
-                CustomGauge:
-                    label_text: str(app.Boost)
-                    label_font_size: 24
-                    label_unit_text: "psig"
-                    gauge_image: "data/gauges/supra_turbo.png"
-                    gauge_bars: str(app.Boost_Image)
-                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    pos: -20, 470
-                    gauge_size: 350
- 
+                    label_text: "THROTL"
+                    unit_text: "0-100"
+                    label_size: 28
+                    font_name: GaugeFont
+                    min_value: 0
+                    max_value: 100
+                    # normal_value: 15
+                    time_window: 30
+                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                    pos: 0, 470
+                    size_hint: 1, 0.08
+                HistoGauge:
+                    value: app.Ign1Timing
+                    label_text: "IGN1°"
+                    unit_text: "deg"
+                    label_size: 28
+                    font_name: GaugeFont
+                    min_value: 0
+                    max_value: 30
+                    # normal_value: 15
+                    time_window: 30
+                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                    pos: 0, 380
+                    size_hint: 1, 0.08
+                HistoGauge:
+                    value: app.AFR
+                    label_text: "AFR"
+                    unit_text: ""
+                    label_size: 28
+                    font_name: GaugeFont
+                    min_value: 0
+                    max_value: 30
+                    normal_value: 14.6
+                    time_window: 30
+                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                    pos: 0, 290
+                    size_hint: 1, 0.08
                 RelativeLayout:
-                    pos: 2,-15
+                    pos: 2,-80
                     ReadoutGauge:
                         label_text: "Eth"
                         label_unit_text: "%" 
@@ -161,24 +225,24 @@ BoxLayout:
                         pos: 60, 220
                         size: 20, 10
         
-                # # Rounded Button
-                # Button:
-                #     text: 'brr'
-                #     font_name: ButtonFont
-                #     font_size: 12
-                #     size_hint: 0.09, 0.05
-                #     # pos_hint: {'center_x': 0.04, 'center_y': 0.05}
-                #     pos: 10, 10
-                #     on_press: root.manager.current = 'gauge2'
+                # # # Rounded Button
+                # # Button:
+                # #     text: 'brr'
+                # #     font_name: ButtonFont
+                # #     font_size: 12
+                # #     size_hint: 0.09, 0.05
+                # #     # pos_hint: {'center_x': 0.04, 'center_y': 0.05}
+                # #     pos: 10, 10
+                # #     on_press: root.manager.current = 'gauge2'
                   
-                # Button:
-                #     text: 'brrbrr'
-                #     font_name: ButtonFont
-                #     font_size: 12
-                #     size_hint: 0.09, 0.05
-                #     # pos_hint: {'center_x': 0.04, 'center_y': 0.05}
-                #     pos: 120, 10
-                #     on_press: root.manager.current = 'gauge2'
+                # # Button:
+                # #     text: 'brrbrr'
+                # #     font_name: ButtonFont
+                # #     font_size: 12
+                # #     size_hint: 0.09, 0.05
+                # #     # pos_hint: {'center_x': 0.04, 'center_y': 0.05}
+                # #     pos: 120, 10
+                # #     on_press: root.manager.current = 'gauge2'
                   
                 StatusBar:
                     orientation: 'horizontal'  # or 'vertical'
