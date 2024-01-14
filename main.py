@@ -1268,11 +1268,11 @@ class MainApp(MDApp):
         # else:
         #     self.RPM = bm3.get_car_data(Car.Data.RPM)
         # Test boost
-        self.Boost += self.TEST_BOOST
-        if self.Boost > 23:
-            self.TEST_BOOST = -1
-        if self.Boost < 1:
-            self.TEST_BOOST = 1
+        # self.Boost += self.TEST_BOOST
+        # if self.Boost > 23:
+        #     self.TEST_BOOST = -1
+        # if self.Boost < 1:
+        #     self.TEST_BOOST = 1
         
         
         self.RPM = bm3.get_car_data(Car.Data.RPM)
