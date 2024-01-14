@@ -446,7 +446,10 @@ class BM3:
         #     return
         self.Connection.send(destination='/app/mapsw', headers=self.jwt_headers, body=json.dumps({"slot": map}))
         
-     
+    def send_for_stop_dash(self):
+        if not self.Connected: return
+        self.Connection.send(destination='/app/stopdash', headers=self.jwt_headers, body={})
+        
     def send_live_adjust_burble(self, value: float):
         if not self.custom_rom or not self.Connected:
             return
@@ -462,7 +465,7 @@ class BM3:
         if 0 > value:
             payload['agg'] = 0
             payload['enabled'] = False
-        self.Connection.send(destination='/app/stopdash', headers=self.jwt_headers, body=json.dumps(payload))
+        self.send_for_stop_dash()
         while True:
             time_since_last_data = time.time() - self.last_car_data_received
             if time_since_last_data > 1:
@@ -735,6 +738,7 @@ class StartScreen(Screen):
         # if BM3().BM3UpdateThread:
         #     # stop thread
         #     BM3().BM3UpdateThread.join()
+        BM3().send_for_stop_dash()
         return super().on_enter(*args)
     def transition_to_main_app(self):
         print("Starting auxiliary apps and initializing the main app...")
