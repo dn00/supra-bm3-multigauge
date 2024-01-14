@@ -465,7 +465,7 @@ class BM3:
         self.Connection.send(destination='/app/stopdash', headers=self.jwt_headers, body=json.dumps(payload))
         while True:
             time_since_last_data = time.time() - self.last_car_data_received
-            if time_since_last_data > 10:
+            if time_since_last_data > 1:
                 # self.send_map_switch(self.current_map if self.current_map != "-1" else "")
                 # time.sleep(1)
                 
@@ -1270,8 +1270,7 @@ class MainApp(MDApp):
             if not self.rpm_zero_time:
                 self.rpm_zero_time = time.time()
             else:
-                # Check if RPM has been zero for more than 10 seconds
-                if time.time() - self.rpm_zero_time > 5:
+                if time.time() - self.rpm_zero_time > 20:
                     self.kill_bm3_agent()
                     self.rpm_zero_time = None  # Reset the timer
                     self.root.ids.sm.current = 'start'
