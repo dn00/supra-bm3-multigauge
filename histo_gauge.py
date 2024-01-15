@@ -94,8 +94,8 @@ class HistoGauge(BoxLayout):
     unit_text = StringProperty("") 
     
     # (value, timestamp)
-    highest_value = 0
-    lowest_value = 0
+    highest_value = float('-inf')
+    lowest_value = float('inf')
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'horizontal'  # Assuming a horizontal layout
@@ -158,7 +158,7 @@ class HistoGauge(BoxLayout):
         self.highest_lowest_layout.add_widget(self.lowest_label)
         self.add_widget(self.highest_lowest_layout)
         
-        Clock.schedule_interval(self.update_histogram, 0.5)
+        Clock.schedule_interval(self.update_histogram, 0.7)
         self.bind(value=self.on_value)
         self.bind(label_text=self.on_label_text)
         self.bind(font_name=self.on_font_name)
@@ -205,6 +205,7 @@ class HistoGauge(BoxLayout):
         # elif label_type == 'min':
         #     self.min_label.y = y_pos - self.min_label.height / 2
 
+
     def on_size(self, instance, value):
         self.draw_separation_line(self.y + self.height, "max")  # Top line
         self.draw_separation_line(self.y, "min")
@@ -242,7 +243,7 @@ class HistoGauge(BoxLayout):
             self.draw_separation_line(self.y, "min")            # Bottom line
             # ... rest of the drawing code ... 
             # Draw each point in the history
-            Color(1, 1, 1, 1)  # White color, for example
+            Color(1, 1, 1, 0.8)  # White color, for example
 
             for value, timestamp in self.history_values:
                 # Normalize the value and timestamp within the range and time window

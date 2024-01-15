@@ -989,6 +989,7 @@ class VerticalSegmentedProgressBar(BoxLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
         self.update_segments()
         # Add label to the bottom of the progress bar
         self.bind(filled_color=self.on_filled_color)
@@ -1027,11 +1028,26 @@ class HorizontalSegmentedProgressBar(BoxLayout):
     flash_color = ListProperty([0.14, 0.14, 0.14, 1])  # Color for flashing effect
     flash_duration = NumericProperty(0.06)  # Duration of each flash in seconds
     is_flashing = BooleanProperty(False)  # Flashing state
+    font_name = StringProperty("")
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = 'horizontal'  # Set layout to horizontal
+        self.orientation = 'horizontal'
+
+        # Create a container for the label
+        self.label_container = BoxLayout(orientation='vertical', size_hint_x=None, width=60)  # Adjust width as needed
+        self.label_widget = Label(text=str(self.value), halign='center', valign='middle', font_size=dp(16))
+        self.label_container.add_widget(self.label_widget)
+
+        # Create a container for the segments
+        self.segments_container = BoxLayout(orientation='horizontal', size_hint_x=1)
+        
+        self.add_widget(self.label_container)
+        self.add_widget(self.segments_container)
+
         self.update_segments()
         
+    def on_font_name(self, instance, value):
+        self.label_widget.font_name = value
     def on_value(self, instance, value):
             if not self.is_flashing:
                 self.update_segments()
@@ -1039,6 +1055,7 @@ class HorizontalSegmentedProgressBar(BoxLayout):
                 self.start_flashing()
             elif value < 6350 and self.is_flashing:
                 self.stop_flashing()
+            self.label_widget.text = str(value)
                 
     def start_flashing(self):
         self.is_flashing = True
@@ -1051,24 +1068,20 @@ class HorizontalSegmentedProgressBar(BoxLayout):
 
     def flash(self, dt):
         if self.is_flashing:
-            for segment in self.children:
+            for segment in self.segments_container.children:
                 segment.color = self.flash_color if segment.color != self.flash_color else self.get_color_for_value(self.value)
         else:
             self.stop_flashing()
-            
+                
     def update_segments(self):
-        self.clear_widgets()
-        max_rpm = self.rpm_ranges[-1][1]  # Max RPM value, assuming the last range ends with the highest RPM
-        segment_rpm = max_rpm / self.segments  # RPM value each segment represents
+        self.segments_container.clear_widgets()
+        max_rpm = self.rpm_ranges[-1][1]
+        segment_rpm = max_rpm / self.segments
 
         for i in range(self.segments):
             segment_value = segment_rpm * i
-            if segment_value < self.value:
-                segment_color = self.get_color_for_value(segment_value)
-            else:
-                segment_color = self.get_dimmed_color_for_value(segment_value)
-            
-            self.add_widget(Segment(color=segment_color))
+            segment_color = self.get_color_for_value(segment_value) if segment_value < self.value else self.get_dimmed_color_for_value(segment_value)
+            self.segments_container.add_widget(Segment(color=segment_color))
 
     def get_color_for_value(self, value):
         for i, (start, end) in enumerate(self.rpm_ranges):
@@ -1259,38 +1272,38 @@ class MainApp(MDApp):
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
-        # if DEVELOPER_MODE == 1:
-        #     self.RPM += self.TEST_RPM
-        #     if self.RPM > 7000:
-        #         self.TEST_RPM = -100
-        #     if self.RPM < 0:
-        #         self.TEST_RPM = 100
-        # else:
-        #     self.RPM = bm3.get_car_data(Car.Data.RPM)
-        # Test boost
-        # self.Boost += self.TEST_BOOST
-        # if self.Boost > 23:
-        #     self.TEST_BOOST = -1
-        # if self.Boost < 1:
-        #     self.TEST_BOOST = 1
+        if DEVELOPER_MODE == 1:
+            self.RPM += self.TEST_RPM
+            if self.RPM > 7000:
+                self.TEST_RPM = -100
+            if self.RPM < 0:
+                self.TEST_RPM = 100
+        else:
+            self.RPM = bm3.get_car_data(Car.Data.RPM)
+        #Test boost#
+        self.Boost += self.TEST_BOOST
+        if self.Boost > 23:
+            self.TEST_BOOST = -1
+        if self.Boost < 1:
+            self.TEST_BOOST = 1
         
         
-        self.RPM = bm3.get_car_data(Car.Data.RPM)
+        # self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.isRequestingAdjustment = bm3.isRequestingAdjustment
         
-        # if self.RPM == 0 and not bm3.isRequestingAdjustment:
-        #     # If the timer is not already set, set it
-        #     if not self.rpm_zero_time:
-        #         self.rpm_zero_time = time.time()
-        #     else:
-        #         if time.time() - self.rpm_zero_time > 20:
-        #             self.kill_bm3_agent()
-        #             self.rpm_zero_time = None  # Reset the timer
-        #             self.root.ids.sm.current = 'start'
-        #             return
-        # else:
-        #     # If RPM is not zero, reset the timer
-        #     self.rpm_zero_time = None
+        if self.RPM == 0 and not bm3.isRequestingAdjustment:
+            # If the timer is not already set, set it
+            if not self.rpm_zero_time:
+                self.rpm_zero_time = time.time()
+            else:
+                if time.time() - self.rpm_zero_time > 20:
+                    self.kill_bm3_agent()
+                    self.rpm_zero_time = None  # Reset the timer
+                    self.root.ids.sm.current = 'start'
+                    return
+        else:
+            # If RPM is not zero, reset the timer
+            self.rpm_zero_time = None
         
         if not bm3.Connected or self.BM3AgentPID == -1 or not bm3.Receiving_Data:
             return
