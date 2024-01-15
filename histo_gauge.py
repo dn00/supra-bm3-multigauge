@@ -135,9 +135,9 @@ class HistoGauge(BoxLayout):
         self.add_widget(self.labels_layout)
 
         # Create min and max labels
-        self.min_label = Label(size_hint_y=None, height=20, text = str(self.min_value), font_size=10)
-        self.max_label = Label(size_hint_y=None, height=20, text = str(self.max_value), font_size=10)
-        self.mid_unit_label = Label(size_hint_y=None, height=26, text = str(self.unit_text), font_size=12)
+        self.min_label = Label(size_hint_y=None, height=20, text = str(self.min_value), font_size=10, color=[1, 1, 1, 0.6])
+        self.max_label = Label(size_hint_y=None, height=20, text = str(self.max_value), font_size=10, color=[1, 1, 1, 0.6])
+        self.mid_unit_label = Label(size_hint_y=None, height=26, text = str(self.unit_text), font_size=12,color=[1, 1, 1, 0.6])
     
         # Add labels to the labels layout
         self.labels_layout.add_widget(self.max_label)
@@ -149,8 +149,8 @@ class HistoGauge(BoxLayout):
         
         self.highest_lowest_layout = BoxLayout(orientation='vertical', size_hint=(None, 1), width=80)
         # bright yellow
-        self.highest_label = Label(size_hint_y=None, height=20, text = str(self.highest_value), font_size=14, color=[0, 0.7, 1, 1])
-        self.lowest_label = Label(size_hint_y=None, height=20, text = str(self.lowest_value), font_size=14, color=[1, 1, 0, 1])
+        self.highest_label = Label(size_hint_y=None, height=20, text = str(self.highest_value), font_size=14, color=[1, 1, 0, 1])
+        self.lowest_label = Label(size_hint_y=None, height=20, text = str(self.lowest_value), font_size=14, color=[0, 0.7, 1, 1])
         self.current_value_label = Label(size_hint_y=None, height=20, text = str(self.value), font_size=28)
 
         self.highest_lowest_layout.add_widget(self.highest_label)
@@ -198,7 +198,7 @@ class HistoGauge(BoxLayout):
         line_width = 1
         if label_type == 'max':
             # orange
-            Color(1, 0.7,0, 0.5)
+            Color(1, 1,0,0.6)
         else:
             Color(1, 1, 1, 0.3)
         Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=line_width)
@@ -219,6 +219,7 @@ class HistoGauge(BoxLayout):
     def on_value(self, instance, value):
         self.current_value.text = str(value)  # Update text in real-time
         self.current_value_label.text = str(value)
+        
     def update_histogram(self, dt):
         current_time = time.time()
 
@@ -267,6 +268,14 @@ class HistoGauge(BoxLayout):
                 self.lowest_value = min(self.history_values)[0]
                 self.highest_label.text = f"{self.highest_value}"  # Up arrow for highest
                 self.lowest_label.text = f"{self.lowest_value}"  # Down arrow for lowest
+                if self.highest_value >= self.max_value:
+                    self.highest_label.color = [1, 0.5,0,1]
+                else:
+                    self.highest_label.color = [1, 1, 0, 1]
+                # if self.lowest_value <= self.min_value:
+                #     self.lowest_label.color = [0, 0.7, 1, 1]
+                # else:
+                #     self.lowest_label.color = [1, 1, 0, 1]
                 
     def normalize_x(self, timestamp):
         """ Normalize the x position based on the timestamp. """
@@ -286,8 +295,8 @@ class HistoGauge(BoxLayout):
         dot_size = 3  # Size of the dot
         # color
         if is_over_limit:
-            #light red
-            Color(1, 0, 0, 0.8)
+            # orange
+            Color(1, 0.5,0,0.8)
         Ellipse(pos=(x_pos - dot_size / 2, y_pos - dot_size / 2), size=(dot_size, dot_size))
 
     def draw_normal_line(self):
