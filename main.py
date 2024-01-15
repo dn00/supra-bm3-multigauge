@@ -1,3 +1,4 @@
+import signal
 from kivymd.app import MDApp
 import stomp
 from kivymd.theming import ThemeManager
