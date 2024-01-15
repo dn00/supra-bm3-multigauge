@@ -510,7 +510,7 @@ class Car:
         ThrottleAngle = CarDiagData("4600", 0)
         Boost = CarDiagData("4205", 0)
         RPM = CarDiagData("5819", 0)
-        Speed = CarDiagData("-1", 0)
+        VehicleSpeed = CarDiagData("580D", 0)
         OilTemp = CarDiagData("5822", 0)
         CoolantTemp = CarDiagData("5805", 0)
         IntakeAirTemp = CarDiagData("580F", 0)
@@ -1020,8 +1020,9 @@ class VerticalSegmentedProgressBar(BoxLayout):
                 
 class HorizontalSegmentedProgressBar(BoxLayout):
     value = NumericProperty(0)  # Current RPM value
+    
     segments = NumericProperty(60)  # Total number of segments
-    rpm_ranges = ListProperty([(0, 4500), (4501, 6250), (6251, 7000)])  # RPM ranges
+    rpm_ranges = ListProperty([(0, 4200), (4201, 6100), (6101, 7000)])  # RPM ranges
     rpm_colors = ListProperty([(0, 1, 0, 1), (1, 0.5, 0, 1), (1, 0, 0, 1)])  # Corresponding colors
     dimmed_colors = ListProperty([(0, 0.5, 0, 0.5), (0.5, 0.25, 0, 0.5), (0.5, 0, 0, 0.5)])  # Dimmed colors for inactive segments
     empty_color = ListProperty([0.14, 0.14, 0.14, 1])  # Empty segment color
@@ -1036,7 +1037,7 @@ class HorizontalSegmentedProgressBar(BoxLayout):
 
         # Create a container for the label
         self.label_container = BoxLayout(orientation='vertical', size_hint_x=None, width=60)  # Adjust width as needed
-        self.label_widget = Label(text=str(self.value), halign='center', valign='middle', font_size=dp(16))
+        self.label_widget = Label(text=str(self.value), halign='center', valign='middle', font_size=dp(20))
         self.label_container.add_widget(self.label_widget)
 
         # Create a container for the segments
@@ -1231,6 +1232,7 @@ class MainApp(MDApp):
     
     Boost = NumericProperty(0)
     RPM = NumericProperty(0)
+    VehicleSpeed = NumericProperty(0)
     TEST_RPM = 200
     TEST_BOOST = 1
     CoolantTemp = NumericProperty(0)
@@ -1273,23 +1275,23 @@ class MainApp(MDApp):
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
-        # if DEVELOPER_MODE == 1:
-        #     self.RPM += self.TEST_RPM
-        #     if self.RPM > 7000:
-        #         self.TEST_RPM = -100
-        #     if self.RPM < 0:
-        #         self.TEST_RPM = 100
-        # else:
-        #     self.RPM = bm3.get_car_data(Car.Data.RPM)
+        if DEVELOPER_MODE == 1:
+            self.RPM += self.TEST_RPM
+            if self.RPM > 7000:
+                self.TEST_RPM = -100
+            if self.RPM < 0:
+                self.TEST_RPM = 100
+        else:
+            self.RPM = bm3.get_car_data(Car.Data.RPM)
         #Test boost#
-        # self.Boost += self.TEST_BOOST
-        # if self.Boost > 23:
-        #     self.TEST_BOOST = -1
-        # if self.Boost < 1:
-        #     self.TEST_BOOST = 1
+        self.Boost += self.TEST_BOOST
+        if self.Boost > 23:
+            self.TEST_BOOST = -1
+        if self.Boost < 1:
+            self.TEST_BOOST = 1
         
         
-        self.RPM = bm3.get_car_data(Car.Data.RPM)
+        # self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.isRequestingAdjustment = bm3.isRequestingAdjustment
         
         if self.RPM == 0 and not bm3.isRequestingAdjustment:
@@ -1332,7 +1334,7 @@ class MainApp(MDApp):
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
-        
+        # self.VehicleSpeed = bm3.get_car_data(Car.Data.VehicleSpeed)
         self.CoolantTemp = bm3.get_car_data(Car.Data.CoolantTemp)
         self.Ign1Timing = bm3.get_car_data(Car.Data.Ign1Timing)
         self.AFR = (bm3.get_car_data(Car.Data.AFR))

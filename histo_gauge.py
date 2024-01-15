@@ -131,13 +131,13 @@ class HistoGauge(BoxLayout):
  
         # Create a BoxLayout for labels
         self.labels_layout = BoxLayout(orientation='vertical', size_hint=(None, 1))
-        self.labels_layout.width = 30  # Set a fixed width for labels
+        self.labels_layout.width = 20  # Set a fixed width for labels
         self.add_widget(self.labels_layout)
 
         # Create min and max labels
         self.min_label = Label(size_hint_y=None, height=20, text = str(self.min_value), font_size=10)
         self.max_label = Label(size_hint_y=None, height=20, text = str(self.max_value), font_size=10)
-        self.mid_unit_label = Label(size_hint_y=None, height=20, text = str(self.unit_text), font_size=12)
+        self.mid_unit_label = Label(size_hint_y=None, height=26, text = str(self.unit_text), font_size=12)
     
         # Add labels to the labels layout
         self.labels_layout.add_widget(self.max_label)
@@ -148,9 +148,9 @@ class HistoGauge(BoxLayout):
         # self.add_widget(self.data_box)
         
         self.highest_lowest_layout = BoxLayout(orientation='vertical', size_hint=(None, 1), width=80)
-        
-        self.highest_label = Label(size_hint_y=None, height=20, text = str(self.highest_value), font_size=10, color=[0, 1, 0, 1])
-        self.lowest_label = Label(size_hint_y=None, height=20, text = str(self.lowest_value), font_size=10, color=[1, 0, 0, 1])
+        # bright yellow
+        self.highest_label = Label(size_hint_y=None, height=20, text = str(self.highest_value), font_size=14, color=[0, 0.7, 1, 1])
+        self.lowest_label = Label(size_hint_y=None, height=20, text = str(self.lowest_value), font_size=14, color=[1, 1, 0, 1])
         self.current_value_label = Label(size_hint_y=None, height=20, text = str(self.value), font_size=28)
 
         self.highest_lowest_layout.add_widget(self.highest_label)
@@ -196,7 +196,11 @@ class HistoGauge(BoxLayout):
     def draw_separation_line(self, y_pos, label_type):
         """ Draw a separation line at the given y position and move the corresponding label. """
         line_width = 1
-        Color(1, 1, 1, 0.3)
+        if label_type == 'max':
+            # orange
+            Color(1, 0.7,0, 0.5)
+        else:
+            Color(1, 1, 1, 0.3)
         Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=line_width)
 
         # # Move the corresponding label
@@ -251,7 +255,7 @@ class HistoGauge(BoxLayout):
                 y_pos = self.normalize_y(value)
 
                 # Draw a dot or a line for the data point
-                self.draw_data_point(x_pos, y_pos)
+                self.draw_data_point(x_pos, y_pos, value > self.max_value - (self.max_value - self.min_value) * 0.1)
 
             # Optionally, draw the normal line
             if self.normal_value:
@@ -277,9 +281,13 @@ class HistoGauge(BoxLayout):
         y_pos = ((value - self.min_value) / value_range) * self.height + self.y
         return y_pos
 
-    def draw_data_point(self, x_pos, y_pos):
+    def draw_data_point(self, x_pos, y_pos, is_over_limit=False):
         """ Draw a single data point at the given x and y positions. """
-        dot_size = 5  # Size of the dot
+        dot_size = 3  # Size of the dot
+        # color
+        if is_over_limit:
+            #light red
+            Color(1, 0, 0, 0.8)
         Ellipse(pos=(x_pos - dot_size / 2, y_pos - dot_size / 2), size=(dot_size, dot_size))
 
     def draw_normal_line(self):
