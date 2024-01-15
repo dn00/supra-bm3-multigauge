@@ -1272,23 +1272,23 @@ class MainApp(MDApp):
         self.BM3ConnectionConnecting = bm3.Connecting
         self.BM3Connected = bm3.Connected
         self.ReceivingData = bm3.Receiving_Data
-        if DEVELOPER_MODE == 1:
-            self.RPM += self.TEST_RPM
-            if self.RPM > 7000:
-                self.TEST_RPM = -100
-            if self.RPM < 0:
-                self.TEST_RPM = 100
-        else:
-            self.RPM = bm3.get_car_data(Car.Data.RPM)
+        # if DEVELOPER_MODE == 1:
+        #     self.RPM += self.TEST_RPM
+        #     if self.RPM > 7000:
+        #         self.TEST_RPM = -100
+        #     if self.RPM < 0:
+        #         self.TEST_RPM = 100
+        # else:
+        #     self.RPM = bm3.get_car_data(Car.Data.RPM)
         #Test boost#
-        self.Boost += self.TEST_BOOST
-        if self.Boost > 23:
-            self.TEST_BOOST = -1
-        if self.Boost < 1:
-            self.TEST_BOOST = 1
+        # self.Boost += self.TEST_BOOST
+        # if self.Boost > 23:
+        #     self.TEST_BOOST = -1
+        # if self.Boost < 1:
+        #     self.TEST_BOOST = 1
         
         
-        # self.RPM = bm3.get_car_data(Car.Data.RPM)
+        self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.isRequestingAdjustment = bm3.isRequestingAdjustment
         
         if self.RPM == 0 and not bm3.isRequestingAdjustment:
