@@ -1072,7 +1072,7 @@ class HorizontalSegmentedProgressBar(BoxLayout):
         if self.is_flashing:
             for segment in self.segments_container.children:
                 segment.color = self.flash_color if segment.color != self.flash_color else self.get_color_for_value(self.value)
-        else:
+        else: 
             self.stop_flashing()
                 
     def update_segments(self):

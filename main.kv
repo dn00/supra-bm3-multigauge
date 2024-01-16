@@ -99,71 +99,79 @@ BoxLayout:
                 # #     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 # #     pos: -20, 470
                 # #     gauge_size: 350
-                HistoGauge:
-                    value: app.Boost
-                    unit_text: "psig"
-                    label_text: "BOOOST"
-                    label_size: 28
-                    font_name: GaugeFont
-                    min_value: 0
-                    max_value: 25
-                    # normal_value: 15
-                    time_window: 30
-                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                    pos: 0, 650
-                    size_hint: 1, 0.08
-                HistoGauge:
+                HistoGaugeGroup:
                     value: app.AcceleratorPosition
-                    unit_text: "0-100"
-                    label_text: "ACCPDL"
-                    label_size: 28
-                    font_name: GaugeFont
-                    min_value: 0
-                    max_value: 100
-                    # normal_value: 15
-                    time_window: 30
-                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                    pos: 0, 560
-                    size_hint: 1,  0.08
-                HistoGauge:
-                    value: app.ThrottleAngle
-                    label_text: "THROTL"
-                    unit_text: "0-100"
-                    label_size: 28
-                    font_name: GaugeFont
-                    min_value: 0
-                    max_value: 100
-                    # normal_value: 15
-                    time_window: 30
-                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                    pos: 0, 470
-                    size_hint: 1, 0.08
-                HistoGauge:
-                    value: app.Ign1Timing
-                    label_text: "IGN1°"
-                    unit_text: "deg"
-                    label_size: 28
-                    font_name: GaugeFont
-                    min_value: 0
-                    max_value: 30
-                    # normal_value: 15
-                    time_window: 30
-                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                    pos: 0, 380
-                    size_hint: 1, 0.08
-                HistoGauge:
-                    value: app.AFR
-                    label_text: "AFR"
-                    unit_text: ""
-                    label_size: 28
-                    font_name: GaugeFont
-                    min_value: 0
-                    max_value: 30
-                    normal_value: 14.6
-                    time_window: 30
-                    # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                    pos: 0, 290
-                    size_hint: 1, 0.08
+                    start_threshold: 80
+                    end_threshold: 80
+                    highlight_color: 1, 0, 0, 0.3  # Red with transparency
+                    size_hint: 1, 0.56
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.61}
+                    spacing: 30
+                    HistoGauge:
+                        value: app.Boost
+                        unit_text: "psig"
+                        label_text: "BOOOST"
+                        label_size: 28
+                        font_name: GaugeFont
+                        min_value: 0
+                        max_value: 25
+                        # normal_value: 15
+                        time_window: 30
+                        # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                        # pos: 0, 650
+                        # size_hint: 1, 0.02
+                    HistoGauge:
+                        value: app.AcceleratorPosition
+                        unit_text: "0-100"
+                        label_text: "ACCPDL"
+                        label_size: 28
+                        font_name: GaugeFont
+                        min_value: 0
+                        max_value: 100
+                        # normal_value: 15
+                        time_window: 30
+                        # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                        # pos: 0, 560
+                        # size_hint: 1,  0.02
+                    HistoGauge:
+                        value: app.ThrottleAngle
+                        label_text: "THROTL"
+                        unit_text: "0-100"
+                        label_size: 28
+                        font_name: GaugeFont
+                        min_value: 0
+                        max_value: 100
+                        # normal_value: 15
+                        time_window: 30
+                        # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                        # pos: 0, 470
+                        # size_hint: 1, 0.02
+                    HistoGauge:
+                        value: app.Ign1Timing
+                        label_text: "IGN1°"
+                        unit_text: "deg"
+                        label_size: 28
+                        font_name: GaugeFont
+                        min_value: 0
+                        max_value: 30
+                        # normal_value: 15
+                        time_window: 30
+                        # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                        # pos: 0, 380
+                        # size_hint: 1, 0.02
+                    HistoGauge:
+                        value: app.AFR
+                        label_text: "AFR"
+                        unit_text: ""
+                        label_size: 28
+                        font_name: GaugeFont
+                        min_value: 0
+                        max_value: 30
+                        normal_value: 14.6
+                        time_window: 30
+                        # pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+                        # pos: 0, 290
+                        # size_hint: 1, 0.02
                 RelativeLayout:
                     pos: 2,-80
                     ReadoutGauge:

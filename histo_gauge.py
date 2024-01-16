@@ -1,7 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
-from kivy.graphics import Color, Line, Ellipse
+from kivy.graphics import Color, Line, Ellipse, Rectangle
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from collections import deque
@@ -9,6 +9,91 @@ import time
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ReferenceListProperty
 
 from kivymd.uix import floatlayout
+from collections import deque
+from kivy.graphics import InstructionGroup
+
+class HistoGaugeGroup(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    start_threshold = NumericProperty(80)  # Start threshold for highlighting
+    end_threshold = NumericProperty(90)    # End threshold for highlighting
+    highlight_color = ListProperty([1, 0, 0, 0.3])  # RGBA for highlight color
+    value = NumericProperty(0)
+    highlight_start = None  # Timestamp when highlighting starts
+    highlight_end = None  # Timestamp when highlighting ends
+    start_histoplot = NumericProperty(60)  # Minimum x-coordinate for highlighting
+    end_histoplot = NumericProperty(360)  # Maximum x-coordinate for highlighting
+    time_window = NumericProperty(30)  # Time window for highlighting
+    highlight_sections = deque() # List to hold start and end timestamps for each highlight section
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'vertical'
+        Clock.schedule_interval(self.check_thresholds, 0.7)  # Check every second
+        # self.bind(minimum_height=self.setter('height'))  # Adjust height based on children
+    #     self.bind(value=self.on_value)
+        
+    # def on_value(self, instance, value):
+    #     # print(self.value)
+    #     self.value = value
+    
+    
+    def check_thresholds(self, dt):
+        current_time = time.time()
+
+        if self.value >= self.start_threshold:
+            if not self.highlight_sections or (self.highlight_sections and self.highlight_sections[-1].get('end') is not None):
+                # Start a new highlight section
+                self.highlight_sections.append({'start': current_time})
+        elif self.value < self.end_threshold and self.highlight_sections:
+            # End the current highlight section
+            if self.highlight_sections[-1].get('end') is None:
+                self.highlight_sections[-1]['end'] = current_time
+
+        self.update_highlight_sections(current_time)
+
+    def update_highlight_sections(self, current_time):
+        # New deque to store updated highlight sections
+        new_highlight_sections = deque()
+
+        for section in self.highlight_sections:
+            # Skip outdated sections
+            if section.get('end') and current_time - section.get('end') >= self.time_window:
+                continue
+
+            # Adjust start if it's out of the time window
+            if current_time - section['start'] > self.time_window:
+                section['start'] = current_time - self.time_window
+
+            # Calculate and update the start and end positions
+            start_x = self.children[0].normalize_x(section['start'])
+            end_x = self.children[0].normalize_x(section.get('end', current_time))
+
+            section['start_x'] = start_x if start_x is not None else 0
+            section['end_x'] = end_x if end_x is not None else self.width
+
+            # Add updated section to the new deque
+            new_highlight_sections.append(section)
+
+        # Replace the old deque with the new one
+        self.highlight_sections = new_highlight_sections
+
+        # Draw the updated highlights
+        self.draw_all_highlights()
+
+    def draw_all_highlights(self):
+        if not hasattr(self, 'highlight_instructions'):
+            self.highlight_instructions = InstructionGroup()
+            self.canvas.before.add(self.highlight_instructions)
+        else:
+            self.highlight_instructions.clear()
+
+        for section in self.highlight_sections:
+            if section['start_x'] is not None and section['end_x'] is not None:
+                self.highlight_instructions.add(Color(*self.highlight_color))
+                self.highlight_instructions.add(Rectangle(pos=(section['start_x'], self.y), size=(section['end_x'] - section['start_x'], self.height)))
+
+    def remove_highlight(self):
+        self.canvas.before.clear()
 class DataBox(BoxLayout):
     current_value = NumericProperty(15)  # Example current value
     font_name = StringProperty()
@@ -98,6 +183,8 @@ class HistoGauge(BoxLayout):
     lowest_value = float('inf')
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+
         self.orientation = 'horizontal'  # Assuming a horizontal layout
         self.history_values = deque()
         self.current_value = Label()  # Large text for current value
@@ -126,9 +213,11 @@ class HistoGauge(BoxLayout):
 
         # Current value label
         self.current_value = Label(size_hint_x=1)
-        self.histogram_container.add_widget(self.current_value)
+        # self.histogram_container.add_widget(self.current_value)
 
- 
+        self.histogram_instructions = InstructionGroup()
+        self.histogram_container.canvas.add(self.histogram_instructions)
+
         # Create a BoxLayout for labels
         self.labels_layout = BoxLayout(orientation='vertical', size_hint=(None, 1))
         self.labels_layout.width = 20  # Set a fixed width for labels
@@ -194,14 +283,11 @@ class HistoGauge(BoxLayout):
         # self.data_box.font_name = value
     
     def draw_separation_line(self, y_pos, label_type):
-        """ Draw a separation line at the given y position and move the corresponding label. """
-        line_width = 1
         if label_type == 'max':
-            # orange
-            Color(1, 1,0,0.6)
+            self.histogram_instructions.add(Color(1, 0.5, 0.1, 0.8))  # Example: orange color
         else:
-            Color(1, 1, 1, 0.3)
-        Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=line_width)
+            self.histogram_instructions.add(Color(1, 1, 1, 0.3))  # Example: white color with more transparency
+        self.histogram_instructions.add(Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
 
         # # Move the corresponding label
         # if label_type == 'max':
@@ -213,7 +299,7 @@ class HistoGauge(BoxLayout):
     def on_size(self, instance, value):
         self.draw_separation_line(self.y + self.height, "max")  # Top line
         self.draw_separation_line(self.y, "min")
-        # self.data_box.height = self.height
+        # self.data_box.height = self.heightT
         self.label_box.height = self.height
 
     def on_value(self, instance, value):
@@ -230,52 +316,46 @@ class HistoGauge(BoxLayout):
         # Remove outdated values
         while self.history_values and current_time - self.history_values[0][1] > self.time_window:
             self.history_values.popleft()
+            break
 
         self.draw_histogram()
 
+
     def draw_histogram(self):
-        self.histogram_container.canvas.clear()
-        with self.histogram_container.canvas:
-            # Set the color for the histogram dots/lines
-            # Draw the top line at the height of the widget
-            self.min_label.y = self.normalize_y(self.min_value) - 12
-            self.max_label.y = self.normalize_y(self.max_value) - 12
+        self.histogram_instructions.clear()
+        self.min_label.y = self.normalize_y(self.min_value) - 12
+        self.max_label.y = self.normalize_y(self.max_value) - 12
             
-            self.highest_label.y = self.normalize_y(self.max_value) - 12
-            self.lowest_label.y = self.normalize_y(self.min_value) - 12
-            self.draw_separation_line(self.top, "max")  # Adjusted top line
-            # Draw the bottom line at the bottom of the widget
-            self.draw_separation_line(self.y, "min")            # Bottom line
-            # ... rest of the drawing code ... 
-            # Draw each point in the history
-            Color(1, 1, 1, 0.8)  # White color, for example
+        self.highest_label.y = self.normalize_y(self.max_value) - 12
+        self.lowest_label.y = self.normalize_y(self.min_value) - 12
+        # Draw separation lines
+        self.draw_separation_line(self.top, "max")
+        self.draw_separation_line(self.y, "min")
 
-            for value, timestamp in self.history_values:
-                # Normalize the value and timestamp within the range and time window
-                x_pos = self.normalize_x(timestamp)
-                y_pos = self.normalize_y(value)
+        # Set the color for the histogram dots/lines
+        self.histogram_instructions.add(Color(1, 1, 1, 0.8))  # Example: white color with some transparency
 
-                # Draw a dot or a line for the data point
-                self.draw_data_point(x_pos, y_pos, value > self.max_value - (self.max_value - self.min_value) * 0.1)
+        # Iterate over the history values and draw each point
+        for value, timestamp in self.history_values:
+            x_pos = self.normalize_x(timestamp)
+            y_pos = self.normalize_y(value)
+            self.draw_data_point(x_pos, y_pos, value > self.max_value - (self.max_value - self.min_value) * 0.1)
 
-            # Optionally, draw the normal line
-            if self.normal_value:
-                self.draw_normal_line()
-            
-            # handle highest and lowest values efficiently
-            if self.history_values:
-                self.highest_value = max(self.history_values)[0]
-                self.lowest_value = min(self.history_values)[0]
-                self.highest_label.text = f"{self.highest_value}"  # Up arrow for highest
-                self.lowest_label.text = f"{self.lowest_value}"  # Down arrow for lowest
-                if self.highest_value >= self.max_value:
-                    self.highest_label.color = [1, 0.5,0,1]
-                else:
-                    self.highest_label.color = [1, 1, 0, 1]
-                # if self.lowest_value <= self.min_value:
-                #     self.lowest_label.color = [0, 0.7, 1, 1]
-                # else:
-                #     self.lowest_label.color = [1, 1, 0, 1]
+        # Optionally, draw the normal line
+        if self.normal_value:
+            self.draw_normal_line()
+        if self.history_values:
+            self.highest_value = max(self.history_values)[0]
+            self.lowest_value = min(self.history_values)[0]
+            self.highest_label.text = f"{self.highest_value}"  # Up arrow for highest
+            self.lowest_label.text = f"{self.lowest_value}"  # Down arrow for lowest
+            if self.highest_value >= self.max_value:
+                # brighter orange
+                
+                self.highest_label.color = [1, 0.5,0.1,1]
+            else:
+                self.highest_label.color = [1, 1, 0, 1]
+
                 
     def normalize_x(self, timestamp):
         """ Normalize the x position based on the timestamp. """
@@ -293,14 +373,20 @@ class HistoGauge(BoxLayout):
     def draw_data_point(self, x_pos, y_pos, is_over_limit=False):
         """ Draw a single data point at the given x and y positions. """
         dot_size = 3  # Size of the dot
-        # color
+
         if is_over_limit:
-            # orange
-            Color(1, 0.5,0,0.8)
-        Ellipse(pos=(x_pos - dot_size / 2, y_pos - dot_size / 2), size=(dot_size, dot_size))
+            # Orange color for over limit
+            self.histogram_instructions.add(Color(1, 0.5, 0.1, 0.8))
+        # else:
+        #     # Default color for normal points
+        #     self.histogram_instructions.add(Color(1, 1, 1, 0.8))  # Green color
+
+        self.histogram_instructions.add(Ellipse(pos=(x_pos - dot_size / 2, y_pos - dot_size / 2), size=(dot_size, dot_size)))
 
     def draw_normal_line(self):
         """ Draw a line indicating the normal value. """
         normal_y = self.normalize_y(self.normal_value)
-        Line(points=[self.histogram_container.x, normal_y, self.histogram_container.x + self.histogram_container.width, normal_y], dash_offset=5)
+        self.histogram_instructions.add(Line(points=[self.histogram_container.x, normal_y, self.histogram_container.x + self.histogram_container.width, normal_y], dash_offset=5))
 
+    def get_histogram_container_position(self):
+        return self.histogram_container.x
