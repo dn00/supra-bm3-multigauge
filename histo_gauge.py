@@ -173,7 +173,8 @@ class HistoGauge(BoxLayout):
     value = NumericProperty(0)
     label_text = StringProperty("")
     label_size = NumericProperty(24)
-    font_name = StringProperty()
+    header_font_name = StringProperty()
+    non_header_font_name = StringProperty()
     max_line_pos = NumericProperty(0)
     min_line_pos = NumericProperty(0)
     unit_text = StringProperty("") 
@@ -224,9 +225,9 @@ class HistoGauge(BoxLayout):
         self.add_widget(self.labels_layout)
 
         # Create min and max labels
-        self.min_label = Label(size_hint_y=None, height=20, text = str(self.min_value), font_size=10, color=[1, 1, 1, 0.6])
-        self.max_label = Label(size_hint_y=None, height=20, text = str(self.max_value), font_size=10, color=[1, 1, 1, 0.6])
-        self.mid_unit_label = Label(size_hint_y=None, height=26, text = str(self.unit_text), font_size=12,color=[1, 1, 1, 0.6])
+        self.min_label = Label(size_hint_y=None, height=24, text = str(self.min_value), font_size=10, color=[1, 1, 1, 0.6])
+        self.max_label = Label(size_hint_y=None, height=24, text = str(self.max_value), font_size=10, color=[1, 1, 1, 0.6])
+        self.mid_unit_label = Label(size_hint_y=None, height=24, text = str(self.unit_text), font_size=12,color=[1, 1, 1, 0.6])
     
         # Add labels to the labels layout
         self.labels_layout.add_widget(self.max_label)
@@ -236,11 +237,11 @@ class HistoGauge(BoxLayout):
         # self.data_box = DataBox(size_hint=(0.1, 1), orientation='vertical',)
         # self.add_widget(self.data_box)
         
-        self.highest_lowest_layout = BoxLayout(orientation='vertical', size_hint=(None, 1), width=80)
+        self.highest_lowest_layout = BoxLayout(orientation='vertical', size_hint=(None, 1), width=100)
         # bright yellow
-        self.highest_label = Label(size_hint_y=None, height=20, text = str(self.highest_value), font_size=14, color=[1, 1, 0, 1])
-        self.lowest_label = Label(size_hint_y=None, height=20, text = str(self.lowest_value), font_size=14, color=[0, 0.7, 1, 1])
-        self.current_value_label = Label(size_hint_y=None, height=20, text = str(self.value), font_size=28)
+        self.highest_label = Label(size_hint_y=None, height=24, text = str(self.highest_value), font_size=14, color=[1, 1, 0, 1])
+        self.lowest_label = Label(size_hint_y=None, height=24, text = str(self.lowest_value), font_size=14, color=[0, 0.7, 1, 1])
+        self.current_value_label = Label(size_hint_y=None, height=24, text = str(self.value), font_size=28)
 
         self.highest_lowest_layout.add_widget(self.highest_label)
         self.highest_lowest_layout.add_widget(self.current_value_label)
@@ -250,7 +251,8 @@ class HistoGauge(BoxLayout):
         Clock.schedule_interval(self.update_histogram, 0.7)
         self.bind(value=self.on_value)
         self.bind(label_text=self.on_label_text)
-        self.bind(font_name=self.on_font_name)
+        self.bind(header_font_name=self.on_header_font_name)
+        self.bind(non_header_font_name=self.on_non_header_font_name)
         self.bind(label_size=self.on_label_size)
         self.bind(unit_text=self.on_unit_text)
         self.bind(min_value=self.on_min_value)
@@ -272,22 +274,26 @@ class HistoGauge(BoxLayout):
         self.label_box.text = value
         # self.self.label_box.width = len(value) * 14  # Adjust width as needed
     
-    def on_font_name(self, instance, value):
+    def on_header_font_name(self, instance, value):
         self.label_box.font_name = value
         self.current_value.font_name = value
-        self.min_label.font_name = value
-        self.max_label.font_name = value
-        self.highest_label.font_name = value
-        self.lowest_label.font_name = value
         self.current_value_label.font_name = value
         # self.data_box.font_name = value
     
+    def on_non_header_font_name(self, instance, value):
+        pass
+        # self.min_label.font_name = value
+        # self.max_label.font_name = value
+        # self.highest_label.font_name = value
+        # self.lowest_label.font_name = value
     def draw_separation_line(self, y_pos, label_type):
         if label_type == 'max':
             self.histogram_instructions.add(Color(1, 0.5, 0.1, 0.8))  # Example: orange color
+            self.histogram_instructions.add(Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
+
         else:
-            self.histogram_instructions.add(Color(1, 1, 1, 0.3))  # Example: white color with more transparency
-        self.histogram_instructions.add(Line(points=[self.histogram_container.x, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
+            self.histogram_instructions.add(Color(1, 1, 1, 0.35))  # Example: white color with more transparency
+            self.histogram_instructions.add(Line(points=[self.histogram_container.x - 70, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
 
         # # Move the corresponding label
         # if label_type == 'max':

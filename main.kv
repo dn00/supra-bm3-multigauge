@@ -11,6 +11,9 @@
 # Set Global Font Types to save typing later
 #:set GaugeFont "data/fonts/Eurostile LT Std Medium.ttf"
 #:set ButtonFont "data/fonts/Eurostile LT Std Extended 2.ttf"
+#:set OrbSemibold "data/fonts/Orbitron-SemiBold.ttf"
+#:set OrbBold "data/fonts/Orbitron-Bold.ttf"
+#:set OrbRegular "data/fonts/Orbitron-Regular.ttf"
 
 <Segment>:
     canvas:
@@ -57,7 +60,7 @@ BoxLayout:
                     size_hint: (1.01, .036)
                     pos_hint: {'center_x': 0.5, 'center_y': .982}
                     padding: 4, 4, 4, 4
-                    font_name: GaugeFont
+                    font_name: OrbSemibold
                 # VerticalSegmentedProgressBar:
                 #     id: gas
                 #     value: app.AcceleratorPosition
@@ -100,9 +103,9 @@ BoxLayout:
                 # #     pos: -20, 470
                 # #     gauge_size: 350
                 HistoGaugeGroup:
-                    value: app.AcceleratorPosition
-                    start_threshold: 80
-                    end_threshold: 80
+                    value: app.RPM
+                    start_threshold: 5000
+                    end_threshold: 5000
                     highlight_color: 1, 0, 0, 0.3  # Red with transparency
                     size_hint: 1, 0.56
                     pos_hint: {'center_x': 0.5, 'center_y': 0.61}
@@ -112,7 +115,8 @@ BoxLayout:
                         unit_text: "psig"
                         label_text: "BOOOST"
                         label_size: 28
-                        font_name: GaugeFont
+                        header_font_name: OrbSemibold
+                        non_header_font_name: OrbRegular
                         min_value: 0
                         max_value: 25
                         # normal_value: 15
@@ -125,7 +129,8 @@ BoxLayout:
                         unit_text: "0-100"
                         label_text: "ACCPDL"
                         label_size: 28
-                        font_name: GaugeFont
+                        header_font_name: OrbSemibold
+                        non_header_font_name: OrbRegular
                         min_value: 0
                         max_value: 100
                         # normal_value: 15
@@ -138,7 +143,8 @@ BoxLayout:
                         label_text: "THROTL"
                         unit_text: "0-100"
                         label_size: 28
-                        font_name: GaugeFont
+                        header_font_name: OrbSemibold
+                        non_header_font_name: OrbRegular
                         min_value: 0
                         max_value: 100
                         # normal_value: 15
@@ -151,7 +157,8 @@ BoxLayout:
                         label_text: "IGN1°"
                         unit_text: "deg"
                         label_size: 28
-                        font_name: GaugeFont
+                        header_font_name: OrbSemibold
+                        non_header_font_name: OrbRegular
                         min_value: 0
                         max_value: 30
                         # normal_value: 15
@@ -164,7 +171,8 @@ BoxLayout:
                         label_text: "AFR"
                         unit_text: ""
                         label_size: 28
-                        font_name: GaugeFont
+                        header_font_name: OrbSemibold
+                        non_header_font_name: OrbRegular
                         min_value: 0
                         max_value: 30
                         normal_value: 14.6
@@ -177,9 +185,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "Eth"
                         label_unit_text: "%" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 28
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.BM3EthanolPercent)
                         pos: 60, 300
@@ -187,9 +195,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "IAT"
                         label_unit_text: "F" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 24
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.IntakeAirTemp)
                         pos: 390, 300
@@ -197,9 +205,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "Oil-T"
                         label_unit_text: "F" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 24
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.OilTemp)
                         pos: 280, 300
@@ -207,9 +215,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "CL-T"
                         label_unit_text: "F" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 24
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.CoolantTemp)
                         pos: 170, 300
@@ -217,9 +225,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "STFT"
                         label_unit_text: "" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 24
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.STFT)
                         pos: 180, 220
@@ -227,9 +235,9 @@ BoxLayout:
                     ReadoutGauge:
                         label_text: "LTFT"
                         label_unit_text: "" 
-                        label_font_size: 32
-                        label_font_name: GaugeFont
-                        value_font_name: GaugeFont
+                        label_font_size: 24
+                        label_font_name: OrbSemibold
+                        value_font_name: OrbRegular
                         value_size: 24
                         value: str(app.LTFT)
                         pos: 60, 220
@@ -274,19 +282,22 @@ BoxLayout:
                         chip_text: "BM3"
                         failed: not app.BM3Connected or not app.ReceivingData
                         active: app.BM3Connecting
+                        font_name: OrbRegular
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
                         chip_text: "ETH"
                         failed: not app.BM3Connected or not 7 <= app.BM3EthanolPercent <=50
                         # active: True
+                        font_name: OrbRegular
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
                         chip_text: "CROM"
                         failed_color: 0.5, 0.5, 0.5, 1
                         failed: not app.CustomRom
-                        # active: True
+                        font_name: OrbRegular
+                        active: app.RequestingCustomRom
                     # StatusChip:
                     #     size_hint_x: None
                     #     color: 0, 0, 0, 1
@@ -300,24 +311,35 @@ BoxLayout:
                         chip_text: "BURB"
                         failed_color: 0.5, 0.5, 0.5, 1
                         failed: app.BurbleAgg == -1
+                        font_name: OrbRegular
+                        active: app.RequestingBurble
                     StatusChip:
                         size_hint_x: None
                         color: 0, 0, 0, 1
                         chip_text: "LETS GO"
                         failed: not app.LETS_FUCKING_GO
+                        font_name: OrbRegular
                 BottomBar:
                     width: 480
                     height: 100
                     padding: 6,6,6,6
                     disabled: app.isRequestingAdjustment
-                    CustomSlider:
+                    CustomSnappableSlider:
                         id: "burble_slider"
                         value: app.BurbleAgg
                         step: 0.5
-                    StatusChipButton:
+                        disabled: True
+                    # CustomSegmentedSlider:
+                    #     id: "burble_slider"
+                    #     value: app.BurbleAgg
+                    #     step: 0.5
+                    StatusChip:
                         chip_text: "MAP " + app.CurrentMap if app.CurrentMap != "-1" else "MAP"
-                        width: 42
+                        width: 28
                         size_hint: 0.4, 0.5
+                        menu_items: ([f"Map {i}" for i in range(1,5)])
+                        failed: app.CurrentMap == "-1"
+                        active: app.RequestingCurrentMap
                         # on_valueapp.dispatch_send_live_adjust_burble(*args)
                         # pos: 10, 10
                         # min: -1

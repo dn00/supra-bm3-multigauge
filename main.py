@@ -14,6 +14,8 @@ from kivy.animation import Animation
 from kivy.uix.screenmanager import Screen, FadeTransition
 from kivy.clock import Clock
 from payloads import jwt, big_payload
+from kivy.uix.dropdown import DropDown
+from kivy.uix.button import Button
 import threading
 import websocket
 import sys
@@ -25,7 +27,7 @@ import time
 from kivy.core.window import Window
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Rectangle, PushMatrix, Translate, PopMatrix
 from kivymd.uix.chip import MDChip, MDChipText
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ReferenceListProperty
@@ -53,6 +55,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.properties import ObjectProperty
+from kivy.graphics import Line
 Window.size = (480, 800)
 
 heart_beat = (10000, 10000)
@@ -632,9 +635,9 @@ class ReadoutGauge(FloatLayout):
                                size=(self.size[0], self.size[1])
                             )
         self.unit_text = Label(text=self.label_unit_text,
-                           font_size=self.label_font_size * 0.4,
-                           font_name=self.label_font_name,
-                              pos=((-Window.size[0] / 2)  + self.pos[0] + (len(self.label.text) * 8) + (len(self.label_unit_text) * 5), (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
+                           font_size=self.label_font_size * 0.6,
+                        #    font_name=self.label_font_name,
+                              pos=((-Window.size[0] / 2)  + self.pos[0] + (len(self.label.text) * 8) + (len(self.label_unit_text) * 6), (-Window.size[1] / 2) + self.pos[1] + self.label.height - 4 ),
                           size=(self.size[0], self.size[1]))
         self.add_widget(self.readout)
         self.add_widget(self.unit_text)
@@ -769,17 +772,21 @@ class InfoScreen(Screen):
 #     def _update_rect(self, instance, value):
 #         self.rect.size = instance.size
 class StatusChip(MDChip):
+    menu_items = ListProperty([])
     chip_text = StringProperty("")
     active = BooleanProperty(False)
     failed = BooleanProperty(False)  # Add a failed attribute 
     failed_color = ListProperty([1, 0, 0, 1])  # Default to red
     def __init__(self, **kwargs):
         super(StatusChip, self).__init__(**kwargs)
+        self.line_width = 1
+
         self.label = MDChipText(
                     theme_text_color= "Custom",
                     text=self.chip_text,
                     # md_bg_color=[0, 0, 0, 0],  # Fully transparent background
                     # font_size=dp(12),
+                    
                     line_width = self.line_width,
                     text_color = [.16, .67, .27, 1],  # Green line color
                 )
@@ -788,17 +795,31 @@ class StatusChip(MDChip):
         self.md_bg_color = [0,0, 0, 1]  # Fully transparent background
         self.line_color = [.16, .67, .27, 1]  # Green line color
         self.size_hint = (None, None)
-        self.width = dp(42)  # Starting width, adjust as needed
-        self.line_width = 1
         self.check = False  # Set to False if you don't want the check icon
         self.padding = [dp(12), 0, dp(12), 0]  # Horizontal padding
+        self.dropdown = DropDown()
+        # Bind the opening of the dropdown to the on_release event
+        self.bind(on_release=self.open_menu)
 
+    def open_menu(self, instance):
+        self.dropdown.open(self)
+
+    # Update dropdown if menu_items change
+    def on_menu_items(self, instance, menu_items):
+        self.dropdown.clear_widgets()
+        for item in menu_items:
+            btn = Button(text=item, size_hint_y=None, height=dp(80), background_color=[1, 1, 1, 0.9])
+            btn.bind(on_release=lambda btn: self.dropdown.select(btn.text))
+            self.dropdown.add_widget(btn)
+
+    def on_kv_post(self, base_widget):
+        self.update_visual_state()
+        return super().on_kv_post(base_widget)  
+    
     def on_chip_text(self, instance, value):
         self.label.text = value
         self.label.font_size = dp(18)
         
-
-
     def animate_colors(self, active_value):
         # Define the colors for pulsing
         neon_green = [.16, .67, .27, 1]
@@ -843,8 +864,8 @@ class StatusChip(MDChip):
         """
         Start pulsing between neon green and orange.
         """
-        neon_green = [.16, .67, .27, 1]
-        orange = [1, 0.5, 0, 1]
+        neon_green = [0.8, 0.8, 0.8, 1]
+        orange = [0.4, 0.4, 0.4, 1]
         self.animate_color_pulse(self.label, 'text_color', neon_green, orange)
         self.animate_color_pulse(self, 'line_color', neon_green, orange)
 
@@ -870,6 +891,8 @@ class StatusChip(MDChip):
         self.update_visual_state()
 
     def on_failed(self, instance, failed_value):
+        if (self.active):
+            return
         self.update_visual_state()
 
 class StatusBar(BoxLayout):
@@ -1036,7 +1059,7 @@ class HorizontalSegmentedProgressBar(BoxLayout):
         self.orientation = 'horizontal'
 
         # Create a container for the label
-        self.label_container = BoxLayout(orientation='vertical', size_hint_x=None, width=60)  # Adjust width as needed
+        self.label_container = BoxLayout(orientation='vertical', size_hint_x=None, width=70, pos_hint={"center_y": 0.65})
         self.label_widget = Label(text=str(self.value), halign='center', valign='middle', font_size=dp(20))
         self.label_container.add_widget(self.label_widget)
 
@@ -1097,53 +1120,148 @@ class HorizontalSegmentedProgressBar(BoxLayout):
                 return self.dimmed_colors[i]
         return self.empty_color
 
-class CustomSlider(MDSlider):
-    # ids = ObjectProperty()
+from kivy.uix.widget import Widget
+from kivy.graphics import Line, Color, Ellipse
+from kivy.core.window import Window
+from kivy.graphics import Triangle
+
+class CustomSnappableSlider(Widget):
+    predefined_options = [-1, 0, 1.5, 3, 6, 12]
+    min = -1
+    max = 12
+    value = NumericProperty(0)
+    margin = NumericProperty(20)  
+    notch_radius = 8 
     sending = False
+    custom_texts = {
+        -1: "CROM Default",
+        0: "No Burb",
+        1.5: "Burrr",
+        3: "BurBur",
+        6: "BURRBURRBRAP",
+        12: "HELLO, IT'S ME SUPRA"
+    }
+    debounce_event = None
+    debounce_delay = 0.5  
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.pos = 10, 10
-        self.min = -1
-        self.max = 12
-        self.show_off = False
+        self.size = (Window.width * 0.8, 50) 
+        self.pos = (Window.width * 0.1, Window.height / 2)
+        self.bind(pos=self.update_slider, size=self.update_slider)
+        self.draw_slider()
         
-        # Trendy color updates:
-        self.hint_text_color = "white"
-        self.hint_bg_color = "#FF9A8B"  # Pastel red
-        self.track_color_inactive = "grey"  # Light blue
-        self.color = "#90D5EC"  # Soft cyan
-        self.thumb_color_active = "#FAD0C4"  # Peach
-        self.thumb_color_inactive = "#FAD0C4"  # Peach
+    def draw_value_text(self, value):
+        text = self.custom_texts.get(value, "Default Text")
+        self.canvas.after.clear()
+        with self.canvas.after:
+            margin = 20 
+            num_notches = len(self.predefined_options)
+            effective_width = self.width - 2 * margin
+            spacing = effective_width / (num_notches - 1)
 
+            notch_index = self.predefined_options.index(value)
+
+            notch_x = self.x + margin + notch_index * spacing
+
+            box_width, box_height = 180, 40
+            box_x = notch_x - box_width / 2
+            box_y = self.y + 80 
+
+            box_x = max(min(box_x, Window.width - box_width), 0)
+
+            Color(1, 1, 1, 0.9)  
+            Rectangle(pos=(box_x, box_y), size=(box_width, box_height))
+
+            pointer_size = 15
+            pointer_height = 20 
+            Triangle(points=[notch_x, self.y + self.height / 2 + pointer_height,
+                             notch_x - pointer_size / 2, box_y,
+                             notch_x + pointer_size / 2, box_y])
+
+           
+            Color(0, 0, 0, 1)  
+
+            with self.canvas.after:
+                Label(text=text, pos=(box_x, box_y + box_height / 8), size=(box_width, box_height), size_hint=(None, None), halign='center', valign='middle', color=(0, 0, 0, 0.8), bold=True, font_size=16)
+            
+    def draw_slider(self):
+        self.canvas.clear()
+        
+        num_notches = len(self.predefined_options)
+        effective_width = self.width - 2 * self.margin 
+        spacing = effective_width / (num_notches - 1)
+
+        with self.canvas:
+                Color(0.6, 0.6, 0.6)
+                last_x = self.x + self.margin - self.notch_radius                
+                for i, option in enumerate(self.predefined_options):
+                    x_pos = self.x + self.margin + i * spacing
+                    Line(points=[last_x, self.center_y, x_pos - self.notch_radius, self.center_y], width=1)
+                    last_x = x_pos + self.notch_radius
+
+                for i, option in enumerate(self.predefined_options):
+                    x_pos = self.x + self.margin + i * spacing 
+                    if option == self.value:
+                        Color(1, 1, 1) 
+                        Ellipse(pos=(x_pos - self.notch_radius, self.center_y - self.notch_radius), size=(self.notch_radius * 2, self.notch_radius * 2))
+                    else:
+                        Color(1, 1, 1) 
+                        Line(circle=(x_pos, self.center_y, self.notch_radius), width=1)
+
+    def update_slider(self, *args):
+        self.draw_slider()
+        
     def on_touch_up(self, touch):
-        # print(self.ids)
-
-        is_touched = False
-        if not self.sending:
-            self.sending = True
-            for item in touch.grab_list:
-                # Check if the item is a weakref instance
-                if isinstance(item, weakref.ref):
-                    # Dereference and check if it's CustomSlider
-                    if isinstance(item(), CustomSlider):
-                        is_touched = True
-            if is_touched:
-                bm3 = BM3()
-                # Change value to the nearest single precision .5
-                if self.value < 0:
-                    self.value = -1
-                    
-                print(self.value)
-                Clock.schedule_once(lambda dt: bm3.send_live_adjust_burble(self.value))
-                
-                
-        Clock.schedule_once(self.reset_sending, 0.5)
+        if self.collide_point(*touch.pos):
+            self.perform_action() 
+            return True
         return super().on_touch_up(touch)
+
+    def perform_action(self):
+    
+        if self.debounce_event:
+            self.debounce_event.cancel()
+        
+        self.debounce_event = Clock.schedule_once(self.execute_command, self.debounce_delay)
+
+    def execute_command(self, dt):
+        self.draw_value_text(self.value)
+        self.disabled = True
+        self.sending = True
+        threading.Thread(target=self.send_command).start()
+        
+    def send_command(self):
+        bm3 = BM3()
+        bm3.send_live_adjust_burble(self.value)
+        Clock.schedule_once(self.command_complete)
+        
+    def command_complete(self, dt):
+        self.canvas.after.clear()
+        self.disabled = False
+        self.sending = False
+        
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self.move_thumb(touch.x)
+            return True
+        return super().on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if self.collide_point(*touch.pos):
+            self.move_thumb(touch.x)
+            return True
+        return super().on_touch_move(touch)
     
     def reset_sending(self, *args):
         self.sending = False
+        
+    def move_thumb(self, touch_x):
+        closest_notch, _ = min(enumerate(self.predefined_options), key=lambda i_option: abs((self.x + i_option[0] * self.width / (len(self.predefined_options) - 1)) - touch_x))
+        self.value = self.predefined_options[closest_notch]
+        self.draw_slider()
+        self.draw_value_text(self.value)
 
-class StatusChipButton(MDFlatButton):
+class StatusChipButton(MDChip):
     chip_text = StringProperty("Map")
     menu_items = ListProperty([{"text": f"Map {i}"} for i in range(4)])
     theme_text_color = "Custom"
@@ -1155,11 +1273,14 @@ class StatusChipButton(MDFlatButton):
         self.pos_hint = {"center_x": 0.5, "center_y": 0.5}
         self.md_bg_color = [0, 0, 0, 1]  # Customize as needed
         # Set up the dropdown menu
-        self.menu = MDDropdownMenu(
-            caller=self,
-            items=self.menu_items,
-            width_mult=4,
-        )
+        # self.menu = MDDropdownMenu(
+        #     background_color=[0, 0, 0, 1],
+        #     caller=self,
+        #     items=self.menu_items,
+        #     width_mult=4,
+            
+        # )
+        # self.menu.md_bg_color = [0, 0, 0, 1]
         self.md_bg_color = [0.0, 0.5, 1.0, 1]
         # self.add_widget(self.label)
         self.pos_hint = {"x": 0.01, "center_y": 0.5}
@@ -1170,7 +1291,8 @@ class StatusChipButton(MDFlatButton):
         # self.line_width = 1
         # self.check = False  # Set to False if you don't want the check icon
         self.padding = [dp(12), dp(12), dp(12), dp(12)]  # Horizontal padding
-        self.menu.bind(on_release=self.menu_callback)
+        
+        # self.menu.bind(on_release=self.menu_callback)
         self.on_release = self.open_menu
 
     def on_chip_text(self, instance, value):
@@ -1261,6 +1383,10 @@ class MainApp(MDApp):
     
     LETS_FUCKING_GO = BooleanProperty(False)
     rpm_zero_time = None
+    
+    RequestingCurrentMap = BooleanProperty(False)
+    RequestingBurble = BooleanProperty(False)
+    RequestingCustomRom = BooleanProperty(False)
 
     def update_vars(self, *args):
         self.TempUnit = sys.TempUnit
@@ -1290,7 +1416,6 @@ class MainApp(MDApp):
         # if self.Boost < 1:
         #     self.TEST_BOOST = 1
         
-        
         self.RPM = bm3.get_car_data(Car.Data.RPM)
         self.isRequestingAdjustment = bm3.isRequestingAdjustment
         
@@ -1310,20 +1435,23 @@ class MainApp(MDApp):
         
         if not bm3.Connected or self.BM3AgentPID == -1 or not bm3.Receiving_Data:
             return
-        
-        if (bm3.current_map == "-1"):
+
+        if (bm3.current_map == "-1" and not self.RequestingCurrentMap):
             self.CurrentMap = bm3.current_map
+            self.RequestingCurrentMap = True
             Clock.schedule_once(self.update_map, 2)
         else:
             self.CurrentMap = bm3.current_map
         
-        if (bm3.custom_rom == False):
+        if (bm3.custom_rom == False and not self.RequestingCustomRom):
             self.CustomRom = bm3.custom_rom
+            self.RequestingCustomRom = True
             Clock.schedule_once(self.update_ids, 2)
         else:
             self.CustomRom = bm3.custom_rom
         
-        if (bm3.current_burble_agg_value == -1):
+        if (bm3.current_burble_agg_value == -1 and not self.RequestingBurble):
+            self.RequestingBurble = True
             self.BurbleAgg = bm3.current_burble_agg_value
             self.BurbleStatus = bm3.current_burble_status
             Clock.schedule_once(self.update_rburble, 2)
@@ -1360,16 +1488,16 @@ class MainApp(MDApp):
         #         Car.dev.OilTemp_inc = 1
         #     self.OilTemp = Car.dev.OilTemp
             
-        if 0 <= int(round(self.Boost/Car.gauge.persegment.Boost)) <= 32:
-            self.Boost_Image = str(Car.gauge.image.Boost+(str(int(round(self.Boost/Car.gauge.persegment.Boost))))+'.png')
-        if 0 <= int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp)) <= 32:
-            self.CoolantTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp))))+'.png')
-        if 0 <= int(round(self.OilTemp/Car.gauge.persegment.OilTemp)) <= 32:
-            self.OilTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.OilTemp/Car.gauge.persegment.OilTemp))))+'.png')
-        if 0 <= int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing)) <= 32:
-            self.Ign1Timing_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing))))+'.png')
-        if 0 <= int(round(self.AFR/Car.gauge.persegment.AFR)) <= 32:
-            self.AFR_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.AFR/Car.gauge.persegment.AFR))))+'.png')
+        # if 0 <= int(round(self.Boost/Car.gauge.persegment.Boost)) <= 32:
+        #     self.Boost_Image = str(Car.gauge.image.Boost+(str(int(round(self.Boost/Car.gauge.persegment.Boost))))+'.png')
+        # if 0 <= int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp)) <= 32:
+        #     self.CoolantTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.CoolantTemp/Car.gauge.persegment.CoolantTemp))))+'.png')
+        # if 0 <= int(round(self.OilTemp/Car.gauge.persegment.OilTemp)) <= 32:
+        #     self.OilTemp_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.OilTemp/Car.gauge.persegment.OilTemp))))+'.png')
+        # if 0 <= int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing)) <= 32:
+        #     self.Ign1Timing_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.Ign1Timing/Car.gauge.persegment.Ign1Timing))))+'.png')
+        # if 0 <= int(round(self.AFR/Car.gauge.persegment.AFR)) <= 32:
+        #     self.AFR_Image = str('data/gauges/normal/s2k_'+(str(int(round(self.AFR/Car.gauge.persegment.AFR))))+'.png')
     
     def get_IP(self):
         if DEVELOPER_MODE == 0:
@@ -1417,16 +1545,19 @@ class MainApp(MDApp):
     def update_ids(self, *args):
         bm3 = BM3()
         bm3.send_for_ids()
+        self.RequestingCustomRom = False
         Clock.unschedule(self.update_ids)
     
     def update_rburble(self, *args):
         bm3 = BM3()
         bm3.send_for_rburble()
+        self.RequestingBurble = False
         Clock.unschedule(self.update_rburble)
     
     def update_map(self, *args):
         bm3 = BM3()
         bm3.send_map_switch()
+        self.RequestingCurrentMap = False
         Clock.unschedule(self.update_map)
     
             
