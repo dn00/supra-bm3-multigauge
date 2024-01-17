@@ -27,7 +27,7 @@ import time
 from kivy.core.window import Window
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Rectangle, PushMatrix, Translate, PopMatrix
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivymd.uix.chip import MDChip, MDChipText
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty, ReferenceListProperty
@@ -738,6 +738,7 @@ class Gauge1Screen(Screen):
 class StartScreen(Screen):
     def on_enter(self, *args):
         app = App.get_running_app()
+        app.BrightnessSet(200)
         app.stop()
         # if BM3().BM3UpdateThread:
         #     # stop thread
@@ -753,7 +754,8 @@ class StartScreen(Screen):
         BM3().update_thread()
         app.start()
         self.manager.current = 'gauge1'
-
+class SettingsScreen(Screen):
+    pass
 class InfoScreen(Screen):
     def on_enter(self):
         sys.get_system_info = True
@@ -777,10 +779,12 @@ class StatusChip(MDChip):
     active = BooleanProperty(False)
     failed = BooleanProperty(False)  # Add a failed attribute 
     failed_color = ListProperty([1, 0, 0, 1])  # Default to red
+    color = ListProperty()
+    tap = ObjectProperty(None)
     def __init__(self, **kwargs):
         super(StatusChip, self).__init__(**kwargs)
         self.line_width = 1
-
+ 
         self.label = MDChipText(
                     theme_text_color= "Custom",
                     text=self.chip_text,
@@ -799,8 +803,9 @@ class StatusChip(MDChip):
         self.padding = [dp(12), 0, dp(12), 0]  # Horizontal padding
         self.dropdown = DropDown()
         # Bind the opening of the dropdown to the on_release event
-        self.bind(on_release=self.open_menu)
-
+        if not self.tap:
+            self.bind(on_release=self.open_menu)
+    
     def open_menu(self, instance):
         self.dropdown.open(self)
 
@@ -1044,10 +1049,10 @@ class VerticalSegmentedProgressBar(BoxLayout):
 class HorizontalSegmentedProgressBar(BoxLayout):
     value = NumericProperty(0)  # Current RPM value
     
-    segments = NumericProperty(60)  # Total number of segments
+    segments = NumericProperty(50)  # Total number of segments
     rpm_ranges = ListProperty([(0, 4200), (4201, 6100), (6101, 7000)])  # RPM ranges
     rpm_colors = ListProperty([(0, 1, 0, 1), (1, 0.5, 0, 1), (1, 0, 0, 1)])  # Corresponding colors
-    dimmed_colors = ListProperty([(0, 0.5, 0, 0.5), (0.5, 0.25, 0, 0.5), (0.5, 0, 0, 0.5)])  # Dimmed colors for inactive segments
+    dimmed_colors = ListProperty([(0, 0.6, 0, 0.6), (0.6, 0.3, 0, 0.6), (0.6, 0, 0, 0.6)])  # Dimmed colors for inactive segments
     empty_color = ListProperty([0.14, 0.14, 0.14, 1])  # Empty segment color
     label = StringProperty("")
     flash_color = ListProperty([0.14, 0.14, 0.14, 1])  # Color for flashing effect
@@ -1124,7 +1129,7 @@ from kivy.uix.widget import Widget
 from kivy.graphics import Line, Color, Ellipse
 from kivy.core.window import Window
 from kivy.graphics import Triangle
-
+from kivy.core.text import Label as CoreLabel
 class CustomSnappableSlider(Widget):
     predefined_options = [-1, 0, 1.5, 3, 6, 12]
     min = -1
@@ -1134,12 +1139,12 @@ class CustomSnappableSlider(Widget):
     notch_radius = 8 
     sending = False
     custom_texts = {
-        -1: "CROM Default",
+        -1: "C-ROM Default",
         0: "No Burb",
         1.5: "Burrr",
-        3: "BurBur",
-        6: "BURRBURRBRAP",
-        12: "HELLO, IT'S ME SUPRA"
+        3: "BurrrBurrrr",
+        6: "BURRRBURRRBRAAP",
+        12: "HELLO, IT'S ME, SUPRA"
     }
     debounce_event = None
     debounce_delay = 0.5  
@@ -1149,10 +1154,22 @@ class CustomSnappableSlider(Widget):
         self.pos = (Window.width * 0.1, Window.height / 2)
         self.bind(pos=self.update_slider, size=self.update_slider)
         self.draw_slider()
-        
+            
     def draw_value_text(self, value):
         text = self.custom_texts.get(value, "Default Text")
         self.canvas.after.clear()
+
+        # Estimate text width
+        font_size = 16
+        core_label = CoreLabel(text=text, font_size=font_size)
+        core_label.refresh()
+        text_width = core_label.texture.size[0]
+
+        # Add some padding to text width
+        padding = 20
+        box_width = text_width + padding * 2
+        box_height = 40
+
         with self.canvas.after:
             margin = 20 
             num_notches = len(self.predefined_options)
@@ -1160,30 +1177,24 @@ class CustomSnappableSlider(Widget):
             spacing = effective_width / (num_notches - 1)
 
             notch_index = self.predefined_options.index(value)
-
             notch_x = self.x + margin + notch_index * spacing
 
-            box_width, box_height = 180, 40
             box_x = notch_x - box_width / 2
             box_y = self.y + 80 
 
             box_x = max(min(box_x, Window.width - box_width), 0)
 
             Color(1, 1, 1, 0.9)  
-            Rectangle(pos=(box_x, box_y), size=(box_width, box_height))
-
+            RoundedRectangle(pos=(box_x, box_y), size=(box_width, box_height), radius=[6])
+            
             pointer_size = 15
             pointer_height = 20 
             Triangle(points=[notch_x, self.y + self.height / 2 + pointer_height,
-                             notch_x - pointer_size / 2, box_y,
-                             notch_x + pointer_size / 2, box_y])
+                            notch_x - pointer_size / 2, box_y,
+                            notch_x + pointer_size / 2, box_y])
 
-           
             Color(0, 0, 0, 1)  
-
-            with self.canvas.after:
-                Label(text=text, pos=(box_x, box_y + box_height / 8), size=(box_width, box_height), size_hint=(None, None), halign='center', valign='middle', color=(0, 0, 0, 0.8), bold=True, font_size=16)
-            
+            Label(text=text, pos=(box_x, box_y), size=(box_width, box_height), size_hint=(None, None), halign='center', valign='middle', color=(0, 0, 0, 0.8), bold=True, font_size=font_size)
     def draw_slider(self):
         self.canvas.clear()
         
@@ -1349,7 +1360,7 @@ class MainApp(MDApp):
     # Vehicle
     CurrentMap = StringProperty("-1")
     CustomRom = BooleanProperty(False)
-    BurbleAgg = NumericProperty(0)
+    BurbleAgg = NumericProperty(-2)
     BurbleStatus = BooleanProperty(False)
     
     Boost = NumericProperty(0)
@@ -1559,8 +1570,14 @@ class MainApp(MDApp):
         bm3.send_map_switch()
         self.RequestingCurrentMap = False
         Clock.unschedule(self.update_map)
-    
-            
+        
+    def BrightnessSet(obj,brightvalue):   # brightness control function
+        brightnesscommand = 'sudo bash -c "echo '+str(brightvalue)+' > /sys/waveshare/rpi_backlight/brightness"'
+        os.system(brightnesscommand)
+        sys.brightness = brightvalue 
+    def switch_to_screen(self, screen_name):
+        if hasattr(self.root, 'ids'):
+            self.root.ids.sm.current = screen_name
 if __name__ =='__main__':
     MainApp().run()
     

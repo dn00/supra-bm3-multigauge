@@ -820,7 +820,7 @@ class MainApp(App):
             os.system('sudo bash -c "echo 1 > /sys/class/backlight/rpi_backlight/bl_power"')  # turns screen off
 
     def BrightnessSet(obj,brightvalue):   # brightness control function
-        brightnesscommand = 'sudo bash -c "echo '+str(brightvalue)+' > /sys/class/backlight/rpi_backlight/brightness"'
+        brightnesscommand = 'sudo bash -c "echo '+ str(brightvalue) + ' > /sys/waveshare/rpi_backlight/brightness"'
         os.system(brightnesscommand)
         sys.brightness = brightvalue
 

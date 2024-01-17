@@ -17,7 +17,7 @@ class HistoGaugeGroup(BoxLayout):
         super().__init__(**kwargs)
     start_threshold = NumericProperty(80)  # Start threshold for highlighting
     end_threshold = NumericProperty(90)    # End threshold for highlighting
-    highlight_color = ListProperty([1, 0, 0, 0.3])  # RGBA for highlight color
+    highlight_color = ListProperty([1, 0, 0, 0.25])  # RGBA for highlight color
     value = NumericProperty(0)
     highlight_start = None  # Timestamp when highlighting starts
     highlight_end = None  # Timestamp when highlighting ends
@@ -193,7 +193,7 @@ class HistoGauge(BoxLayout):
         # Container for histogram and label
         # self.overlay_container = FloatLayout(size_hint_x=1)
         # self.add_widget(self.overlay_container)
-        self.label_box = MultiLineLabel(size_hint=(0.3, 1), orientation='vertical')
+        self.label_box = MultiLineLabel(size_hint=(0.32, 1), orientation='vertical')
         self.add_widget(self.label_box)
         # Histogram container (inside overlay container)
         self.histogram_container = BoxLayout(size_hint=(1, 1), pos_hint={'x': 0, 'y': 0})
@@ -293,7 +293,7 @@ class HistoGauge(BoxLayout):
 
         else:
             self.histogram_instructions.add(Color(1, 1, 1, 0.35))  # Example: white color with more transparency
-            self.histogram_instructions.add(Line(points=[self.histogram_container.x - 70, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
+            self.histogram_instructions.add(Line(points=[self.histogram_container.x - 74, y_pos, self.histogram_container.x + self.histogram_container.width, y_pos], width=1))
 
         # # Move the corresponding label
         # if label_type == 'max':

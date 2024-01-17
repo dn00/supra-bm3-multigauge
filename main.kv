@@ -103,9 +103,9 @@ BoxLayout:
                 # #     pos: -20, 470
                 # #     gauge_size: 350
                 HistoGaugeGroup:
-                    value: app.RPM
-                    start_threshold: 5000
-                    end_threshold: 5000
+                    value: app.AcceleratorPosition
+                    start_threshold: 80
+                    end_threshold: 80
                     highlight_color: 1, 0, 0, 0.3  # Red with transparency
                     size_hint: 1, 0.56
                     pos_hint: {'center_x': 0.5, 'center_y': 0.61}
@@ -310,15 +310,20 @@ BoxLayout:
                         color: 0, 0, 0, 1
                         chip_text: "BURB"
                         failed_color: 0.5, 0.5, 0.5, 1
-                        failed: app.BurbleAgg == -1
+                        failed: app.BurbleAgg == -2
                         font_name: OrbRegular
                         active: app.RequestingBurble
                     StatusChip:
                         size_hint_x: None
-                        color: 0, 0, 0, 1
-                        chip_text: "LETS GO"
+                        color: 1, 1, 1, 1
+                        chip_text: "G2G"
                         failed: not app.LETS_FUCKING_GO
                         font_name: OrbRegular
+                    StatusChip:
+                        chip_text: "Settings"
+                        color: 0, 0, 0, 1
+                        icon: 'email'
+                        tap: app.switch_to_screen('settings')
                 BottomBar:
                     width: 480
                     height: 100
@@ -381,9 +386,14 @@ BoxLayout:
                     width: 70
                     line_width: 1  # Adjust the width of the border line as needed
                     check: False  # Set to False if you don't want the check icon           
-            
-        InfoScreen:
-            name: 'info'
+                    
+        # InfoScreen:
+        #     name: 'info'
+        #     FloatLayout:
+        #         Label:
+        #             text: 'SSID: ' + app.WifiNetwork    
+        SettingsScreen:
+            name: 'settings'
             FloatLayout:
                 Label:
                     text: 'SSID: ' + app.WifiNetwork
