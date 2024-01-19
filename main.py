@@ -642,7 +642,6 @@ class ReadoutGauge(FloatLayout):
         self.add_widget(self.readout)
         self.add_widget(self.unit_text)
         self.add_widget(self.label)
-        print((-Window.size[0] / 2) + self.label.size[0] + self.size[0])
 
         return super().on_kv_post(base_widget)
     
@@ -1136,15 +1135,15 @@ class CustomSnappableSlider(Widget):
     max = 12
     value = NumericProperty(0)
     margin = NumericProperty(20)  
-    notch_radius = 8 
+    notch_radius = 10
     sending = False
     custom_texts = {
         -1: "C-ROM Default",
-        0: "No Burb",
-        1.5: "Burrr",
-        3: "BurrrBurrrr",
-        6: "BURRRBURRRBRAAP",
-        12: "HELLO, IT'S ME, SUPRA"
+        0: "No Burb (0)",
+        1.5: "Brrrb (1.5)",
+        3: "BrrrbBurrbBrrrb (3)",
+        6: "BURRRBURRRBRAAAAAP (6)",
+        12: "HELLO! IT'S ME, SUPRA (11)"
     }
     debounce_event = None
     debounce_delay = 0.5  
@@ -1572,7 +1571,7 @@ class MainApp(MDApp):
         Clock.unschedule(self.update_map)
         
     def BrightnessSet(obj,brightvalue):   # brightness control function
-        brightnesscommand = 'sudo bash -c "echo '+str(brightvalue)+' > /sys/waveshare/rpi_backlight/brightness"'
+        brightnesscommand = 'bash -c "echo '+str(brightvalue)+' > /sys/waveshare/rpi_backlight/brightness"'
         os.system(brightnesscommand)
         sys.brightness = brightvalue 
     def switch_to_screen(self, screen_name):

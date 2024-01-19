@@ -23,7 +23,7 @@ class HistoGaugeGroup(BoxLayout):
     highlight_end = None  # Timestamp when highlighting ends
     start_histoplot = NumericProperty(60)  # Minimum x-coordinate for highlighting
     end_histoplot = NumericProperty(360)  # Maximum x-coordinate for highlighting
-    time_window = NumericProperty(30)  # Time window for highlighting
+    time_window = NumericProperty(45)  # Time window for highlighting
     highlight_sections = deque() # List to hold start and end timestamps for each highlight section
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
