@@ -895,8 +895,6 @@ class StatusChip(MDChip):
         self.update_visual_state()
 
     def on_failed(self, instance, failed_value):
-        if (self.active):
-            return
         self.update_visual_state()
 
 class StatusBar(BoxLayout):
