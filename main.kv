@@ -344,7 +344,7 @@ BoxLayout:
                         size_hint: 0.4, 0.5
                         menu_items: ([f"Map {i}" for i in range(1,5)])
                         failed: app.CurrentMap == "-1"
-                        active: app.RequestingCurrentMap
+                        active: False
                         # on_valueapp.dispatch_send_live_adjust_burble(*args)
                         # pos: 10, 10
                         # min: -1
