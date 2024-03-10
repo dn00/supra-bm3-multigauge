@@ -1444,29 +1444,22 @@ class MainApp(MDApp):
         if not bm3.Connected or self.BM3AgentPID == -1 or not bm3.Receiving_Data:
             return
 
+        self.CurrentMap = bm3.current_map
         if (bm3.current_map == "-1" and not self.RequestingCurrentMap):
-            self.CurrentMap = bm3.current_map
             self.RequestingCurrentMap = True
             Clock.schedule_once(self.update_map, 2)
-        else:
-            self.CurrentMap = bm3.current_map
-        
+    
+        self.CustomRom = bm3.custom_rom
         if (bm3.custom_rom == False and not self.RequestingCustomRom):
-            self.CustomRom = bm3.custom_rom
             self.RequestingCustomRom = True
             Clock.schedule_once(self.update_ids, 2)
-        else:
-            self.CustomRom = bm3.custom_rom
-        
+    
+        self.BurbleAgg = bm3.current_burble_agg_value
+        self.BurbleStatus = bm3.current_burble_status
         if (bm3.current_burble_agg_value == -1 and not self.RequestingBurble):
             self.RequestingBurble = True
-            self.BurbleAgg = bm3.current_burble_agg_value
-            self.BurbleStatus = bm3.current_burble_status
             Clock.schedule_once(self.update_rburble, 2)
-        else: 
-            self.BurbleAgg = bm3.current_burble_agg_value
-            self.BurbleStatus = bm3.current_burble_status
-        
+
         self.Boost = int(bm3.get_car_data(Car.Data.Boost))
         self.IntakeAirTemp = (bm3.get_car_data(Car.Data.IntakeAirTemp))
         self.BM3EthanolPercent = bm3.get_car_data(Car.Data.BM3EthanolPercent)
